@@ -8,8 +8,6 @@
 
 #pragma once
 
-#ifdef _WIN32
-
 #include <imgui.h>
 
 namespace rav {
@@ -35,4 +33,3 @@ void NoteFoldableSection(ImGuiID open_id, bool* open);
 }  // namespace ui
 }  // namespace rav
 
-#endif  // _WIN32

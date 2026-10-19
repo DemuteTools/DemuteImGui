@@ -13,8 +13,6 @@
 
 #pragma once
 
-#ifdef _WIN32
-
 #include <imgui.h>
 
 #include <string>
@@ -102,4 +100,3 @@ int SegmentedHovered();
 }  // namespace ui
 }  // namespace rav
 
-#endif  // _WIN32

@@ -145,8 +145,6 @@
 
 #pragma once
 
-#ifdef _WIN32
-
 #include <imgui.h>
 
 #include <cstddef>
@@ -954,4 +952,3 @@ bool VerticalTabs(const char* id, const char* const* labels, int count, int* sel
 }  // namespace ui
 }  // namespace rav
 
-#endif  // _WIN32

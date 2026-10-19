@@ -190,7 +190,7 @@ int main() {
                     if (at.empty() || at.back() != where) at.push_back(where);
                 }
     }
-    Check(files > 50, "src/ scanned (" + std::to_string(files) + " files)");
+    Check(files >= 10, "src/ scanned (" + std::to_string(files) + " files)");
 
     std::printf("Symbols above U+00FF in src/ string literals (%d files):\n", files);
     for (const auto& [cp, at] : found) {

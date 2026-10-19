@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "sound_model.h"
+#include "sound_node_type.h"
 
 #include <imgui.h>
 

@@ -4,14 +4,12 @@
 
 #include "ui_fold_all.h"
 
-#ifdef _WIN32
-
 #include <algorithm>
 #include <map>
 
 #include <imgui_internal.h>  // ImHashStr
 
-#include "library_tree_nav.h"  // FoldScopeButtonsFor
+#include "fold_scope_buttons.h"
 #include "ui_theme.h"
 
 namespace rav {
@@ -97,4 +95,3 @@ void NoteFoldableSection(ImGuiID open_id, bool* open)
 }  // namespace ui
 }  // namespace rav
 
-#endif  // _WIN32

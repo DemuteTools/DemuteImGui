@@ -5,8 +5,6 @@
 #include "ui_theme.h"
 #include "ui_drag_number.h"
 
-#ifdef _WIN32
-
 #include <algorithm>
 #include <cctype>
 #include <cfloat>
@@ -129,6 +127,12 @@ int          g_toolbar_frame = -1;
 // BeginDisabledLook's pushes, one entry per open look: bit 0 = colours, bit 1 = alpha.
 unsigned g_dislook[32] = {};
 int      g_dislook_n = 0;
+
+// Dear ImGui 1.92 made a font size-less: PushFont takes a size, and the ascent lives in the baked
+// font. The theme keeps one ImFont per role (added at its CSS size, held in ImFont::LegacySize), so a
+// role is still a plain ImFont* and these two helpers restore the 1.91 behaviour.
+void PushFontPx(ImFont* f) { ImGui::PushFont(f, f ? f->LegacySize : 0.0f); }
+float FontAscent(ImFont* f) { return f ? f->GetFontBaked(f->LegacySize)->Ascent : 0.0f; }
 
 ImFont* DefaultFont() { return g_fonts.body ? g_fonts.body : ImGui::GetDefaultFont(); }
 ImFont* FontOr(ImFont* f, ImFont* fallback) { return f ? f : fallback; }
@@ -253,7 +257,7 @@ bool BeginStyledTooltip()
     if (open) {
         // The tooltip's own text colours: a disabled region (BeginDisabledLook, a disabled skin) may
         // have pushed kFaint for its items; ImGui already lifts its fade inside a tooltip.
-        ImGui::PushFont(DefaultFont());
+        PushFontPx(DefaultFont());
         ImGui::PushStyleColor(ImGuiCol_Text, Col(kText));
         ImGui::PushStyleColor(ImGuiCol_TextDisabled, Col(kMuted));
     }
@@ -351,7 +355,7 @@ ImFont* Font(FontRole role)
     return FontBody();
 }
 
-FontScope::FontScope(ImFont* f) { ImGui::PushFont(f ? f : DefaultFont()); }
+FontScope::FontScope(ImFont* f) { PushFontPx(f ? f : DefaultFont()); }
 FontScope::~FontScope() { ImGui::PopFont(); }
 
 ImVec2 TextSizeIn(ImFont* font, const char* text, const char* text_end)
@@ -359,7 +363,7 @@ ImVec2 TextSizeIn(ImFont* font, const char* text, const char* text_end)
     if (!text) return ImVec2(0.0f, 0.0f);
     if (!font) font = DefaultFont();
     if (!text_end) text_end = LabelEnd(text);
-    ImVec2 s = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, text, text_end);
+    ImVec2 s = font->CalcTextSizeA(font->LegacySize, FLT_MAX, 0.0f, text, text_end);
     s.x = std::floor(s.x + 0.99999f);
     return s;
 }
@@ -368,7 +372,7 @@ void AddTextIn(ImDrawList* dl, ImFont* font, ImVec2 p, ImU32 col, const char* te
 {
     if (!dl || !text) return;
     if (!font) font = DefaultFont();
-    dl->AddText(font, font->FontSize, p, col, text, text_end ? text_end : LabelEnd(text));
+    dl->AddText(font, font->LegacySize, p, col, text, text_end ? text_end : LabelEnd(text));
 }
 
 int SegmentedHovered() { return g_seg_hovered; }
@@ -663,7 +667,7 @@ bool LinkButton(const char* label, ImU32 quiet)
     // text-decoration: underline; text-underline-offset 2 px (under the baseline). A quiet link is
     // underlined under the mouse only.
     if (!quiet || hovered) {
-        const float uy = std::floor(ty + ImGui::GetFont()->Ascent + Dp(2.0f)) + 0.5f;
+        const float uy = std::floor(ty + ImGui::GetFontBaked()->Ascent + Dp(2.0f)) + 0.5f;
         dl->AddLine(ImVec2(a.x, uy), ImVec2(a.x + ts.x, uy), col, 1.0f);
     }
     PopCrisp(crisp);
@@ -792,7 +796,7 @@ TagColours ToneColours(TagTone tone)
     }
 }
 
-float PillH() { return std::floor(FontSmall()->FontSize + Dp(3.0f)); }  // .tag: 11 px line + pad 1 + edge 1, twice
+float PillH() { return std::floor(FontSmall()->LegacySize + Dp(3.0f)); }  // .tag: 11 px line + pad 1 + edge 1, twice
 
 // Puts an item of width w on the current line, ControlH() high (the frame line), and returns the
 // y at which a box `box_h` high sits centred on it.
@@ -827,7 +831,7 @@ float DrawTag(ImDrawList* dl, ImVec2 p, const char* text, TagTone tone, ImU32 do
         x += Dp(8.0f) + Dp(5.0f);
     }
     ImFont* f = FontSmall();
-    AddTextIn(dl, f, ImVec2(x, std::floor(p.y + (h - f->FontSize) * 0.5f)), Ink(c.text), text);
+    AddTextIn(dl, f, ImVec2(x, std::floor(p.y + (h - f->LegacySize) * 0.5f)), Ink(c.text), text);
     return w;
 }
 
@@ -855,7 +859,7 @@ float DrawSmallTag(ImDrawList* dl, ImVec2 p, const char* text)
     const ImVec2 b(p.x + w, p.y + h);
     dl->AddRect(p, b, Ink(kStrokeStrong), Dp(4.0f));
     ImFont* f = FontTiny();
-    AddTextIn(dl, f, ImVec2(p.x + Dp(5.0f), std::floor(p.y + (h - f->FontSize) * 0.5f)), Ink(kMuted), text);
+    AddTextIn(dl, f, ImVec2(p.x + Dp(5.0f), std::floor(p.y + (h - f->LegacySize) * 0.5f)), Ink(kMuted), text);
     return w;
 }
 
@@ -880,7 +884,7 @@ void CountChip(const char* text)
     dl->AddRectFilled(ImVec2(p.x, y), ImVec2(p.x + w, y + h), Ink(kAccentSoft), h * 0.5f);
     dl->AddRect(ImVec2(p.x, y), ImVec2(p.x + w, y + h), Ink(kAccentLine), h * 0.5f);
     ImFont* f = FontSmall();
-    AddTextIn(dl, f, ImVec2(p.x + Dp(8.0f), std::floor(y + (h - f->FontSize) * 0.5f)), Ink(kAccentText), text);
+    AddTextIn(dl, f, ImVec2(p.x + Dp(8.0f), std::floor(y + (h - f->LegacySize) * 0.5f)), Ink(kAccentText), text);
 }
 
 float ToneButtonWidth(const char* label, const Icon* icon)
@@ -956,7 +960,7 @@ namespace {
 // Returns its width.
 float SpacedCaps(ImDrawList* dl, ImFont* font, ImVec2 p, ImU32 col, const char* text, bool draw)
 {
-    const float spacing = font->FontSize / 1.33f * 0.06f;  // .06 em of the CSS size
+    const float spacing = font->LegacySize / 1.33f * 0.06f;  // .06 em of the CSS size
     float       x = p.x;
     const char* s = text;
     const char* end = LabelEnd(text);
@@ -967,8 +971,8 @@ float SpacedCaps(ImDrawList* dl, ImFont* font, ImVec2 p, ImU32 col, const char* 
         if (cp < 0x80) cp = static_cast<unsigned int>(std::toupper(static_cast<int>(cp)));
         char buf[5] = {};
         ImTextCharToUtf8(buf, cp);
-        if (draw) dl->AddText(font, font->FontSize, ImVec2(x, p.y), col, buf);
-        x += font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, buf).x + spacing;
+        if (draw) dl->AddText(font, font->LegacySize, ImVec2(x, p.y), col, buf);
+        x += font->CalcTextSizeA(font->LegacySize, FLT_MAX, 0.0f, buf).x + spacing;
         s += n;
     }
     return std::max(0.0f, x - p.x - spacing);
@@ -983,7 +987,7 @@ void GroupCaption(const char* text, ImU32 col)
     const ImVec2 p = ImGui::GetCursorScreenPos();
     const float  w = SpacedCaps(dl, f, p, 0, text, false);
     SpacedCaps(dl, f, p, Ink(col ? col : kFaint), text, true);
-    ImGui::Dummy(ImVec2(std::max(1.0f, w), f->FontSize));
+    ImGui::Dummy(ImVec2(std::max(1.0f, w), f->LegacySize));
 }
 
 void SubText(const char* text)
@@ -1091,14 +1095,14 @@ DragNumberEvent DragNumber(const char* id, double* value, double step, int decim
     if (g_dn.typing == gid || g_dn.drag == gid) g_dn.seen_frame = ImGui::GetFrameCount();
     if (g_dn.typing == gid) {
         // Typing: the same raised field, its edge accent-line (the focus ring), the number in mono.
-        ImGui::PushFont(mono);
+        PushFontPx(mono);
         ImGui::PushStyleColor(ImGuiCol_FrameBg, Col(kRaised));
         ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, Col(kRaised));
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive, Col(kRaised));
         ImGui::PushStyleColor(ImGuiCol_Border, Col(kAccentLine));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, Dp(kRadiusSm));
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(Dp(5.0f), std::max(0.0f, (h - mono->FontSize) * 0.5f)));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(Dp(5.0f), std::max(0.0f, (h - mono->LegacySize) * 0.5f)));
         ImGui::SetNextItemWidth(w);
         if (g_dn.focus_frames > 0) ImGui::SetKeyboardFocusHere();
         const bool enter = ImGui::InputText("##type", g_dn.buf, sizeof(g_dn.buf),
@@ -1259,14 +1263,14 @@ bool Fader(const char* id, float* v, float v_min, float v_max, float width, cons
     if (typing) {
         // The DragNumber's typing look: raised, accent-line edge, r5, the number in mono 11.
         g_fader_typing_frame = ImGui::GetFrameCount();
-        ImGui::PushFont(mono);
+        PushFontPx(mono);
         ImGui::PushStyleColor(ImGuiCol_FrameBg, Col(kRaised));
         ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, Col(kRaised));
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive, Col(kRaised));
         ImGui::PushStyleColor(ImGuiCol_Border, Col(kAccentLine));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, Dp(kRadiusSm));
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(Dp(5.0f), std::max(0.0f, (h - mono->FontSize) * 0.5f)));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(Dp(5.0f), std::max(0.0f, (h - mono->LegacySize) * 0.5f)));
         const float lo = std::min(v_min, v_max), hi = std::max(v_min, v_max);
         const bool  esc = ImGui::IsKeyPressed(ImGuiKey_Escape, false);
         changed = ImGui::TempInputScalar(ImRect(a, b), gid, id, ImGuiDataType_Float, v,
@@ -1366,13 +1370,13 @@ bool TitleField(const char* id, char* buf, size_t buf_size, float width, int fla
     const float w = FieldWidth(width);
     ImFont*     f = font ? font : FontHeading();
     // 28 px for the heading; an inline field in another font: the font plus 6, never under ControlH().
-    const float h = font ? std::max(ControlH(), std::floor(f->FontSize + Dp(6.0f))) : Dp(28.0f);
-    ImGui::PushFont(f);
+    const float h = font ? std::max(ControlH(), std::floor(f->LegacySize + Dp(6.0f))) : Dp(28.0f);
+    PushFontPx(f);
     const ImU32 fill = (hovered || active) ? kBg : IM_COL32(0, 0, 0, 0);
     ImGui::PushStyleColor(ImGuiCol_FrameBg, Col(fill));
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, Col(fill));
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, Col(fill));
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(Dp(6.0f), std::max(0.0f, (h - f->FontSize) * 0.5f)));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(Dp(6.0f), std::max(0.0f, (h - f->LegacySize) * 0.5f)));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, Dp(kRadiusSm));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::SetNextItemWidth(w);
@@ -1389,12 +1393,12 @@ bool RenameField(const char* id, char* buf, size_t buf_size, float width, int fl
 {
     const float w = FieldWidth(width);
     ImFont*     f = FontTitle();
-    ImGui::PushFont(f);
+    PushFontPx(f);
     ImGui::PushStyleColor(ImGuiCol_FrameBg, Col(kBg));
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, Col(kBg));
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, Col(kBg));
     ImGui::PushStyleColor(ImGuiCol_TextDisabled, Col(kFaint));  // the hint
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(Dp(6.0f), std::max(0.0f, (ControlH() - f->FontSize) * 0.5f)));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(Dp(6.0f), std::max(0.0f, (ControlH() - f->LegacySize) * 0.5f)));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, Dp(kRadiusSm));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::SetNextItemWidth(w);
@@ -1776,7 +1780,7 @@ void MenuCaption(const char* text)
     const ImVec2 p = ImGui::GetCursorScreenPos();
     const float  w = SpacedCaps(dl, f, p, 0, text, false);
     SpacedCaps(dl, f, ImVec2(p.x, p.y + Dp(2.0f)), Ink(kFaint), text, true);
-    ImGui::Dummy(ImVec2(std::max(1.0f, w), f->FontSize + Dp(2.0f)));
+    ImGui::Dummy(ImVec2(std::max(1.0f, w), f->LegacySize + Dp(2.0f)));
 }
 
 bool BeginComboStyled(const char* id, const char* preview, float width, int flags, TagTone tone, bool follow)
@@ -2183,7 +2187,7 @@ bool BeginToast(const char* id, ImVec2 pos, ImVec2 pivot)
     ImGui::PushStyleColor(ImGuiCol_Border, Col(kStrokeStrong));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, Dp(kRadiusMd));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(Dp(14.0f), Dp(8.0f)));
-    ImGui::PushFont(FontTitle());
+    PushFontPx(FontTitle());
     constexpr ImGuiWindowFlags kFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                                         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                                         ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
@@ -2210,8 +2214,8 @@ void ToastNote(const char* text)
     const ImVec2 p = ImGui::GetCursorScreenPos();
     const float  h = std::max(ts.y, last_max.y - last_min.y);
     ImGui::Dummy(ImVec2(std::max(1.0f, ts.x), h));
-    const float base = last_min.y + (h - ImGui::GetTextLineHeight()) * 0.5f + ImGui::GetFont()->Ascent;  // the line's baseline
-    AddTextIn(ImGui::GetWindowDrawList(), f, ImVec2(p.x, std::floor(base - f->Ascent)), Ink(kFaint), text);
+    const float base = last_min.y + (h - ImGui::GetTextLineHeight()) * 0.5f + ImGui::GetFontBaked()->Ascent;  // the line's baseline
+    AddTextIn(ImGui::GetWindowDrawList(), f, ImVec2(p.x, std::floor(base - FontAscent(f))), Ink(kFaint), text);
 }
 
 // ---- splitter (13-7 B13) -----------------------------------------------------------------
@@ -2272,7 +2276,7 @@ bool EllipsisText(ImDrawList* dl, ImVec2 p, float max_x, ImU32 col, const std::s
 std::string EllipsizeToWidth(ImFont* font, const std::string& text, float max_w)
 {
     if (!font) return text;
-    auto width = [&](const std::string& t) { return font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, t.c_str()).x; };
+    auto width = [&](const std::string& t) { return font->CalcTextSizeA(font->LegacySize, FLT_MAX, 0.0f, t.c_str()).x; };
     if (width(text) <= max_w) return text;
     std::string t = text;
     while (!t.empty()) {
@@ -2288,14 +2292,14 @@ void VerticalText(ImDrawList* dl, ImFont* font, float cx, float top, ImU32 col, 
                   ImVec2 clip_min, ImVec2 clip_max)
 {
     if (!dl || !font || text.empty()) return;
-    const ImVec2 ts = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, text.c_str());
+    const ImVec2 ts = font->CalcTextSizeA(font->LegacySize, FLT_MAX, 0.0f, text.c_str());
     // Laid out flat at `o` (never culled: the clip holds the flat text and the strip), then each of
     // its vertices turned about it and moved into place.
     const ImVec2 o(cx, top);
     dl->PushClipRect(ImVec2(std::min(clip_min.x, o.x), std::min(clip_min.y, o.y)),
                      ImVec2(std::max(clip_max.x, o.x + ts.x), std::max(clip_max.y, o.y + ts.y)), false);
     const int v0 = dl->VtxBuffer.Size;
-    dl->AddText(font, font->FontSize, o, col, text.c_str());
+    dl->AddText(font, font->LegacySize, o, col, text.c_str());
     for (int k = v0; k < dl->VtxBuffer.Size; ++k) {
         ImVec2&     v = dl->VtxBuffer[k].pos;
         const float x = v.x - o.x, y = v.y - o.y;
@@ -2698,8 +2702,8 @@ bool BeginSection(Section& s, const char* title, const SectionOpts& o)
     const char* tend = LabelEnd(title);
     const std::string ttl(title, tend);
     ImFont*     tf = FontTitle();
-    const float ty = std::floor(p.y + (hh - tf->FontSize) * 0.5f);
-    ImGui::PushFont(tf);
+    const float ty = std::floor(p.y + (hh - tf->LegacySize) * 0.5f);
+    PushFontPx(tf);
     const bool  cut = EllipsisTextTip(dl, ImVec2(tx, ty), right_end, Ink(kText), ttl);
     const float title_w = ImGui::CalcTextSize(ttl.c_str()).x;
     ImGui::PopFont();
@@ -2707,8 +2711,8 @@ bool BeginSection(Section& s, const char* title, const SectionOpts& o)
         ImFont*     sf = FontSmall();
         const float sx = tx + title_w + Dp(4.0f);
         if (sx + Dp(16.0f) < right_end) {
-            ImGui::PushFont(sf);
-            EllipsisTextTip(dl, ImVec2(sx, std::floor(ty + tf->Ascent - sf->Ascent)), right_end, Ink(kFaint), o.suffix);
+            PushFontPx(sf);
+            EllipsisTextTip(dl, ImVec2(sx, std::floor(ty + FontAscent(tf) - FontAscent(sf))), right_end, Ink(kFaint), o.suffix);
             ImGui::PopFont();
         }
     }
@@ -2864,4 +2868,3 @@ bool VerticalTabs(const char* id, const char* const* labels, int count, int* sel
 }  // namespace ui
 }  // namespace rav
 
-#endif  // _WIN32

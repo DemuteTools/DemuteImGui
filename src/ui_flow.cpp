@@ -4,8 +4,6 @@
 
 #include "ui_flow.h"
 
-#ifdef _WIN32
-
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -383,4 +381,3 @@ bool MenuEntry(const char* label, const char* shortcut, bool selected, bool enab
 }  // namespace ui
 }  // namespace rav
 
-#endif  // _WIN32
