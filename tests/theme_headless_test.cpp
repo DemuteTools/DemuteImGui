@@ -251,7 +251,7 @@ void DrawWidgets(int frame)
         ui::IconMenuItem(ToolIcon(kToolPlus), "With icon");
         if (ui::BeginSubMenu("Sub")) {
             ui::MenuEntry("Inner");
-            ui::EndMenuPopup();
+            ImGui::EndMenu();
         }
         ui::MenuSeparator();
         ui::EndMenuPopup();
@@ -313,6 +313,12 @@ int main()
 
     ui::ApplyRavTheme();
     CHECK(ui::FontBody() == fs.body && ui::FontTitle() == fs.title && ui::FontMono() == fs.mono);
+    // Metrics follow the size each role was registered at (ImFont::LegacySize in 1.92).
+    CHECK(fs.big->LegacySize == 15.0f && fs.badge->LegacySize == 9.0f);
+    CHECK(ui::TextSizeIn(fs.big, "Xg").y > ui::TextSizeIn(fs.badge, "Xg").y);
+    CHECK(ui::TextSizeIn(fs.title, "Xg").x > ui::TextSizeIn(fs.small, "Xg").x);
+    CHECK(ui::TextSizeIn(nullptr, "Xg").y > 0.0f);  // a null font answers the body font
+    CHECK(ui::TagHeight() > 0.0f);
 
     std::size_t last_vtx = 0;
     for (int frame = 0; frame < 4; ++frame) {
@@ -329,6 +335,7 @@ int main()
 
     // A second pass at another scale and without the role fonts (the fallback to the default font).
     ui::SetUiScale(1.5f);
+    CHECK(ui::Dp(10.0f) == 15.0f);
     ui::SetFonts(ui::FontSet());
     for (int frame = 0; frame < 2; ++frame) {
         ImGui::NewFrame();
@@ -338,6 +345,7 @@ int main()
     }
     CHECK(ImGui::GetDrawData()->TotalVtxCount > 1000);
 
+    ui::SetUiScale(1.0f);
     ImGui::DestroyContext(ctx);
     if (g_fail == 0) std::printf("theme_headless_test: OK (%zu vertices in the last styled frame)\n", last_vtx);
     return g_fail == 0 ? 0 : 1;

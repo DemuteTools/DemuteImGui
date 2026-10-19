@@ -266,7 +266,7 @@ float MenuRowH();        // 26: .pop .mi
 // ---- fonts (13-7: the mock-up's --font Segoe UI and --mono Cascadia Mono / Consolas) ----
 // The viewer builds the atlas and registers its fonts here once; a role whose font could
 // not be loaded answers the nearest one that did (semibold -> regular -> the default), so
-// ImGui::PushFont(ui::FontMono()) is always safe. Sizes are the mock-up's CSS pixels.
+// ui::FontScope(ui::FontMono()) is always safe (Dear ImGui 1.92: a role is an ImFont added at its own size; use FontScope, not ImGui::PushFont(font)). Sizes are the mock-up's CSS pixels.
 struct FontSet {
     ImFont* body  = nullptr;  // 12 (the default)
     ImFont* small = nullptr;  // 11

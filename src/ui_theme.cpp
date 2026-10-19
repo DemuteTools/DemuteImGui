@@ -131,7 +131,11 @@ int      g_dislook_n = 0;
 // Dear ImGui 1.92 made a font size-less: PushFont takes a size, and the ascent lives in the baked
 // font. The theme keeps one ImFont per role (added at its CSS size, held in ImFont::LegacySize), so a
 // role is still a plain ImFont* and these two helpers restore the 1.91 behaviour.
-void PushFontPx(ImFont* f) { ImGui::PushFont(f, f ? f->LegacySize : 0.0f); }
+void PushFontPx(ImFont* f)
+{
+    if (!f) f = ImGui::GetDefaultFont();
+    ImGui::PushFont(f, f->LegacySize);
+}
 float FontAscent(ImFont* f) { return f ? f->GetFontBaked(f->LegacySize)->Ascent : 0.0f; }
 
 ImFont* DefaultFont() { return g_fonts.body ? g_fonts.body : ImGui::GetDefaultFont(); }

@@ -20,3 +20,11 @@ ImGui sans backend, applique le thème et dessine des frames avec chaque widget 
 
 Fichiers repris de FbxAnimationViewer (RAV) au commit 283dbee, importés tels quels au premier commit
 (voir `git log`), puis adaptés à ImGui 1.92 et découplés de RAV.
+
+## Contrat pour l'hôte (ImGui 1.92)
+
+- Chaque rôle de police (`ui::FontSet`) est un `ImFont*` ajouté à sa propre taille (`SizePixels` > 0), car le
+  thème lit la taille dans `ImFont::LegacySize`. Utiliser `ui::FontScope`, pas `ImGui::PushFont(font)`.
+- Le backend de rendu doit gérer les textures de 1.92 (`ImGuiBackendFlags_RendererHasTextures`) et les
+  décalages de sommets (`RendererHasVtxOffset`).
+- `SoundNodeType` et `FoldScopeButtons` sont copiés de RAV ; RAV supprimera ses doublons au passage (story 1.3).

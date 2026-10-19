@@ -10,7 +10,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES AND CMAKE_SOURCE_DIR S
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
 endif()
 
-include(CTest)
+option(DEMUTE_IMGUI_BUILD_TESTS "Build the demute-imgui tests" ${PROJECT_IS_TOP_LEVEL})
+if(DEMUTE_IMGUI_BUILD_TESTS)
+    include(CTest)
+endif()
 include(FetchContent)
 
 # Dear ImGui, pinned: the tools no longer fetch it themselves. Dear ImGui has no CMakeLists of its
@@ -37,7 +40,8 @@ add_library(theme STATIC
     src/library_icons.cpp)
 target_include_directories(theme PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(theme PUBLIC demute_imgui_core)
+target_compile_options(theme PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 
-if(BUILD_TESTING)
+if(DEMUTE_IMGUI_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
