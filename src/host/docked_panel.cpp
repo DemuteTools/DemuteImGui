@@ -94,6 +94,12 @@ DockedPanel::DockedPanel(const DockedPanelConfig& config, DockedPanelCallbacks c
 
 DockedPanel::~DockedPanel()
 {
+    // A window that outlives the object must not reach it any more, nor its timer.
+    if (hwnd_ && IsWindow(hwnd_)) SetWindowLongPtrW(hwnd_, GWLP_USERDATA, 0);
+    if (timer_id_) {
+        KillTimer(nullptr, timer_id_);
+        timer_id_ = 0;
+    }
     UnregisterPanel(this);
 }
 

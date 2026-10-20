@@ -19,6 +19,8 @@
 //   Teardown (WM_DESTROY, or a failed WM_CREATE): timer killed -> GL made current -> on_before_shutdown
 //   (ImGui still up: destroy the FloatUiWindows here) -> ImGui torn down -> on_gl_shutdown (the tool's GL
 //   objects; GL still current when it exists) -> GL context dropped.
+//   Both shutdown callbacks also run after a failed open (no GL context, on_gl_ready false, no ImGui yet),
+//   as RAV's StopRendering does: they must tolerate a half-made state (Rc() / ImGuiCtx() may be null).
 // A callback that throws inside WM_CREATE is caught there (WM_CREATE returns -1, nothing escapes USER32).
 
 #pragma once
@@ -50,12 +52,12 @@ using PanelProc = std::function<bool(DockedPanel& panel, HWND hwnd, UINT msg, WP
 struct DockedPanelCallbacks {
     std::function<bool(DockedPanel&)> on_gl_ready;        // GL current, before ImGui; false = the open fails
     std::function<void(DockedPanel&)> on_imgui_ready;     // ImGui context made (or not: ImGuiCtx() is null)
-    std::function<void(DockedPanel&)> on_tick;            // a frame (visible); GL and ImGui contexts current
+    std::function<void(DockedPanel&)> on_tick;            // a frame (visible); GL current, ImGui current when ImGuiCtx() is non-null
     std::function<void(DockedPanel&)> on_hidden_tick;     // a tick while hidden (nothing current is assured)
     std::function<void(DockedPanel&)> on_parked;          // the window just became hidden (once)
     std::function<void(DockedPanel&)> on_resumed;         // shown again (once, before the next on_tick)
-    std::function<void(DockedPanel&)> on_before_shutdown; // GL current (if any), ImGui context still up
-    std::function<void(DockedPanel&)> on_gl_shutdown;     // ImGui gone, GL still current (if any)
+    std::function<void(DockedPanel&)> on_before_shutdown; // GL current (if any), ImGui still up (if made); also after a failed open
+    std::function<void(DockedPanel&)> on_gl_shutdown;     // ImGui gone, GL still current (if any); also after a failed open
     PanelProc proc_pre_imgui;  // before Dear ImGui sees the message (after the modifiers' refresh)
     PanelProc proc;            // after Dear ImGui (unless it took the message); WM_CREATE excluded
 };

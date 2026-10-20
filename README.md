@@ -61,6 +61,10 @@ sans être détruit ; `on_resumed` au retour. `Open` / `Close` / `Toggle` ne lè
 2. Backends OpenGL3 puis Win32, puis le contexte ImGui (le propriétaire de l'atlas se détruit en dernier ; ImGui
    1.92 ne détruit une texture que lorsqu'un seul contexte l'utilise encore).
 3. `on_gl_shutdown` (GL encore courant) : objets GL de l'outil.
+
+`on_before_shutdown` et `on_gl_shutdown` sont aussi appelés après une ouverture ratée (pas de contexte GL,
+`on_gl_ready` faux, ImGui pas encore créé), comme le `StopRendering` de RAV : ils doivent tolérer un état à
+moitié construit (`Rc()` / `ImGuiCtx()` peuvent être nuls).
 4. Contexte GL et DC.
 
 Après la fermeture de toutes les fenêtres : `FloatUiWindow::UnregisterWindowClass()` (au déchargement de la DLL).

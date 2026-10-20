@@ -74,6 +74,10 @@ void TestGeometry()
     CHECK(p.x == 100);  // never left of the viewer
     p = FloatInitialPosition(10.0f, kFloatNoPosition, 400, viewer, 1.0f);
     CHECK(p.x == 676 && p.y == 90);  // one coordinate missing: both default
+    p = FloatInitialPosition(kFloatNoPosition, 20.0f, 400, viewer, 1.0f);
+    CHECK(p.x == 676 && p.y == 90);  // x missing, y valid: both default
+    p = FloatInitialPosition(-99999.0f, 20.0f, 400, viewer, 1.0f);
+    CHECK(p.x == 676 && p.y == 90);  // -99999 counts as missing
     p = FloatInitialPosition(-99998.0f, 20.0f, 400, viewer, 1.0f);
     CHECK(p.x == -99998 && p.y == 20);  // a saved position is kept as is (fitted afterwards)
 
@@ -115,6 +119,8 @@ void TestGeometry()
     CHECK(m.rect.x == 0 && m.rect.y == 740 && !m.resize);
     m = FloatPlaceAtMouse(800, 500, 2400, 300, 14, &wa);
     CHECK(m.resize && m.rect.w == 1920 && m.rect.x == 0);
+    m = FloatPlaceAtMouse(800, 500, 400, 1500, 14, &wa);
+    CHECK(m.resize && m.rect.h == 1040 && m.rect.w == 400 && m.rect.y == 0 && m.rect.x == 600);  // only the height
     m = FloatPlaceAtMouse(800, 500, 400, 300, 14, nullptr);
     CHECK(m.rect.x == 600 && m.rect.y == 486 && !m.resize);
 

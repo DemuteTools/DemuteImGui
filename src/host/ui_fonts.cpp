@@ -191,6 +191,7 @@ ImGuiContext* CreateWindowImGui(HWND hwnd, HDC dc)
         ImGui_ImplWin32_Shutdown();
     }
     Log(LogLevel::Info, "tool UI (Dear ImGui) could not initialize — the window still works");
+    ui::SetFonts(ui::FontSet{});  // no role font may point into the atlas that goes
     ImGui::DestroyContext(created);
     ImGui::SetCurrentContext(prev);
     return nullptr;
@@ -203,6 +204,7 @@ void DestroyWindowImGui(ImGuiContext* ctx)
     ImGui::SetCurrentContext(ctx);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplWin32_Shutdown();
+    ui::SetFonts(ui::FontSet{});  // no role font may point into the atlas that goes
     ImGui::DestroyContext(ctx);
     ImGui::SetCurrentContext(prev == ctx ? nullptr : prev);
 }

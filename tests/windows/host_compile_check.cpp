@@ -86,6 +86,14 @@ int main()
         CHECK(!gl.ok());
         host::ImGuiContextScope ctx(nullptr);
     }
+    {  // A failed GL init (no window): false, nothing made, nothing to release.
+        HDC   dc = reinterpret_cast<HDC>(1);
+        HGLRC rc = reinterpret_cast<HGLRC>(1);
+        CHECK(!host::CreateGlWindowContext(nullptr, &dc, &rc));
+        CHECK(dc == nullptr && rc == nullptr);
+        host::DestroyGlWindowContext(nullptr, &dc, &rc);  // idempotent on an empty context
+        CHECK(dc == nullptr && rc == nullptr);
+    }
     Use(&host::CreateGlWindowContext);
     Use(&host::DestroyGlWindowContext);
     Use(&host::SetSwapInterval);

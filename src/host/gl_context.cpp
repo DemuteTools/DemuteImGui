@@ -15,6 +15,7 @@ bool CreateGlWindowContext(HWND hwnd, HDC* out_dc, HGLRC* out_rc)
     if (!out_dc || !out_rc) return false;
     *out_dc = nullptr;
     *out_rc = nullptr;
+    if (!hwnd) return false;  // GetDC(nullptr) would be the whole screen's DC: never given a pixel format
     HDC dc = GetDC(hwnd);
     if (!dc) return false;
 

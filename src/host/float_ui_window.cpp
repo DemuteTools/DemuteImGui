@@ -118,6 +118,7 @@ FloatUiWindow::FloatUiWindow(const char* pref, const wchar_t* title, int default
 
 FloatUiWindow::~FloatUiWindow()
 {
+    if (hwnd_ && IsWindow(hwnd_)) SetWindowLongPtrW(hwnd_, GWLP_USERDATA, 0);  // the window no longer reaches it
     for (FloatUiWindow*& slot : g_floats)
         if (slot == this) slot = nullptr;
 }

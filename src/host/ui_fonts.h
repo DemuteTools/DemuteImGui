@@ -27,7 +27,8 @@ void LoadUiFontAtlas(ImGuiIO& io, float dpi_scale);
 
 // A new ImGui context for the GL window `hwnd` (its DC `dc`), left current: no ini or log file, the theme,
 // the style and ui::SetUiScale at the DPI of `dc`, the UI fonts, the Win32 and OpenGL3 backends. The GL
-// context must be current. Null when a backend fails (logged; nothing is left: the window works without UI).
+// context must be current. Null when a backend fails (logged; nothing is left, the theme's
+// fonts cleared: the window works without UI).
 ImGuiContext* CreateWindowImGui(HWND hwnd, HDC dc);
 
 // Its symmetric teardown: the OpenGL3 then Win32 backends, then the context (the GL context must be
