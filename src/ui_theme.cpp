@@ -524,7 +524,7 @@ bool ToggleButton(const char* label, bool on, const ImVec2& size)
 {
     if (!on || ItemDisabled()) return SolidButton(label, size);  // disabled: the disabled skin, no accent
     ImGui::PushStyleColor(ImGuiCol_Button, Col(kAccentSoft));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Col(IM_COL32(0x5B, 0x8C, 0xFF, 0x3D)));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Col(kAccentHoverSoft));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, Col(kAccentSoft));
     ImGui::PushStyleColor(ImGuiCol_Border, Col(kAccentLine));
     ImGui::PushStyleColor(ImGuiCol_Text, Col(kAccentText));

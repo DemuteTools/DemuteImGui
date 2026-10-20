@@ -18,3 +18,8 @@ add_test(NAME ui_glyphs COMMAND ui_glyphs_test)
 add_executable(theme_headless_test theme_headless_test.cpp)
 target_link_libraries(theme_headless_test PRIVATE theme)
 add_test(NAME theme_headless COMMAND theme_headless_test)
+
+# Story 1.4: WCAG contrast of the accent and the 8 Wwise icons, on a stand-alone draw list (no window).
+add_executable(ui_contrast_icons_test ui_contrast_icons_test.cpp)
+target_link_libraries(ui_contrast_icons_test PRIVATE theme)
+add_test(NAME ui_contrast_icons COMMAND ui_contrast_icons_test)

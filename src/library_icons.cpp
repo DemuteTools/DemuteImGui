@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace rav {
 
@@ -81,6 +82,74 @@ ui::Icon TypeIconInk(SoundNodeType t)
     return i;
 }
 
+ui::Icon LibraryIconInk(int which)
+{
+    ui::Icon i = LibraryIcon(which);
+    switch (which) {
+    case kGlyphRandom:
+    case kGlyphBlend:
+    case kGlyphSwitch:
+    case kGlyphSequence: i.col = ui::kAccentInk; break;
+    default: break;
+    }
+    return i;
+}
+
+namespace {
+
+constexpr float kPiL = 3.14159265f;
+
+// Appends the arc of centre (cx, cy), radius r (all in the 16 box) from angle a0 to a1 (radians, y down).
+void ArcPts(std::vector<ImVec2>& v, float cx, float cy, float r, float a0, float a1, int n = 4)
+{
+    for (int i = 0; i <= n; ++i) {
+        const float a = a0 + (a1 - a0) * static_cast<float>(i) / static_cast<float>(n);
+        v.push_back(ImVec2(cx + r * std::cos(a), cy + r * std::sin(a)));
+    }
+}
+
+// The folder outline of kGlyphGroup, in the 16 box, closed (the last point joins the first).
+std::vector<ImVec2> FolderPts()
+{
+    std::vector<ImVec2> v;
+    ArcPts(v, 2.5f, 4.5f, 1.0f, kPiL, 1.5f * kPiL);
+    v.push_back(ImVec2(5.7f, 3.5f));
+    v.push_back(ImVec2(7.1f, 5.0f));
+    ArcPts(v, 13.5f, 6.0f, 1.0f, 1.5f * kPiL, 2.0f * kPiL);
+    ArcPts(v, 13.5f, 12.5f, 1.0f, 0.0f, 0.5f * kPiL);
+    ArcPts(v, 2.5f, 12.5f, 1.0f, 0.5f * kPiL, kPiL);
+    v.push_back(v.front());
+    return v;
+}
+
+// Strokes the polyline `v` (16 box) as dashes `on` / `off` long (in 16-box units), phase 0 at its start.
+void DashedPath(ImDrawList* dl, ImVec2 p, float k, const std::vector<ImVec2>& v, float on, float off, ImU32 col, float w)
+{
+    bool  lit = true;   // the current dash (true) or gap (false)
+    float left = on;    // what remains of it
+    for (size_t i = 1; i < v.size(); ++i) {
+        ImVec2 a = v[i - 1];
+        const ImVec2 b = v[i];
+        float len = std::sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+        if (len <= 0.0f) continue;
+        const ImVec2 d((b.x - a.x) / len, (b.y - a.y) / len);
+        while (len > 1e-4f) {
+            const float  step = std::min(len, left);
+            const ImVec2 e(a.x + d.x * step, a.y + d.y * step);
+            if (lit) dl->AddLine(ImVec2(p.x + a.x * k, p.y + a.y * k), ImVec2(p.x + e.x * k, p.y + e.y * k), col, w);
+            a = e;
+            len -= step;
+            left -= step;
+            if (left <= 1e-6f) {
+                lit = !lit;
+                left = lit ? on : off;
+            }
+        }
+    }
+}
+
+}  // namespace
+
 void DrawLibraryGlyph(ImDrawList* dl, ImVec2 p, float s, int which, ImU32 col)
 {
     const float k = s / 16.0f;
@@ -115,6 +184,83 @@ void DrawLibraryGlyph(ImDrawList* dl, ImVec2 p, float s, int which, ImU32 col)
         dl->PathStroke(col, ImDrawFlags_None, w);
         dl->PathArcTo(P(7.915f, 8.0f), 6.0f * k, -0.775f, 0.775f, 10);
         dl->PathStroke(col, ImDrawFlags_None, w);
+        break;
+    }
+    case kGlyphSequence: {
+        // M2.5 5h3.5M6.5 8h3.5M10.5 11h3, stroke 1.3
+        const float w = std::max(1.0f, 1.3f * k);
+        dl->AddLine(P(2.5f, 5.0f), P(6.0f, 5.0f), col, w);
+        dl->AddLine(P(6.5f, 8.0f), P(10.0f, 8.0f), col, w);
+        dl->AddLine(P(10.5f, 11.0f), P(13.5f, 11.0f), col, w);
+        break;
+    }
+    case kGlyphWorkUnit: {
+        // M4.5 2.5h4.5l3.5 3.5v6.5a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z  +  M9 2.5V6h3.5
+        const float w = std::max(1.0f, 1.2f * k);
+        std::vector<ImVec2> v;
+        v.push_back(ImVec2(4.5f, 2.5f));
+        v.push_back(ImVec2(9.0f, 2.5f));
+        v.push_back(ImVec2(12.5f, 6.0f));
+        ArcPts(v, 11.5f, 12.5f, 1.0f, 0.0f, 0.5f * kPiL);
+        ArcPts(v, 4.5f, 12.5f, 1.0f, 0.5f * kPiL, kPiL);
+        ArcPts(v, 4.5f, 3.5f, 1.0f, kPiL, 1.5f * kPiL);
+        for (const ImVec2& q : v) dl->PathLineTo(P(q.x, q.y));
+        dl->PathStroke(col, ImDrawFlags_Closed, w);
+        dl->PathLineTo(P(9.0f, 2.5f));
+        dl->PathLineTo(P(9.0f, 6.0f));
+        dl->PathLineTo(P(12.5f, 6.0f));
+        dl->PathStroke(col, ImDrawFlags_None, w);
+        break;
+    }
+    case kGlyphVirtualFolder:
+        DashedPath(dl, p, k, FolderPts(), 2.0f, 1.6f, col, std::max(1.0f, 1.2f * k));
+        break;
+    case kGlyphActorMixer: {
+        const float w = std::max(1.0f, 1.2f * k);
+        const float r = std::max(1.0f, 1.6f * k);
+        dl->AddLine(P(4, 3), P(4, 13), col, w);
+        dl->AddLine(P(8, 3), P(8, 13), col, w);
+        dl->AddLine(P(12, 3), P(12, 13), col, w);
+        dl->AddCircleFilled(P(4, 9.5f), r, col);
+        dl->AddCircleFilled(P(8, 5.5f), r, col);
+        dl->AddCircleFilled(P(12, 10.5f), r, col);
+        break;
+    }
+    case kGlyphSoundVoice: {
+        // rect 6,2.5 4x6.5 r2 (1.2); M4 7.5a4 4 0 0 0 8 0M8 11.5v2M6 13.5h4 (1.3)
+        dl->AddRect(P(6.0f, 2.5f), P(10.0f, 9.0f), col, 2.0f * k, ImDrawFlags_None, std::max(1.0f, 1.2f * k));
+        const float w = std::max(1.0f, 1.3f * k);
+        dl->PathArcTo(P(8.0f, 7.5f), 4.0f * k, 0.0f, kPiL, 10);
+        dl->PathStroke(col, ImDrawFlags_None, w);
+        dl->AddLine(P(8.0f, 11.5f), P(8.0f, 13.5f), col, w);
+        dl->AddLine(P(6.0f, 13.5f), P(10.0f, 13.5f), col, w);
+        break;
+    }
+    case kGlyphEvent: {
+        // M4 14V2.5 (1.3)  +  M4 3h8l-2 2.75L12 8.5H4 (1.2, round joins)
+        dl->AddLine(P(4.0f, 14.0f), P(4.0f, 2.5f), col, std::max(1.0f, 1.3f * k));
+        const ImVec2 f[5] = {P(4.0f, 3.0f), P(12.0f, 3.0f), P(10.0f, 5.75f), P(12.0f, 8.5f), P(4.0f, 8.5f)};
+        dl->AddPolyline(f, 5, col, ImDrawFlags_Closed, std::max(1.0f, 1.2f * k));
+        break;
+    }
+    case kGlyphSoundBank: {
+        // M8 2l5.5 3v6L8 14l-5.5-3V5z  +  M2.5 5 8 8l5.5-3M8 8v6 (1.2)
+        const float w = std::max(1.0f, 1.2f * k);
+        const ImVec2 hex[6] = {P(8, 2), P(13.5f, 5), P(13.5f, 11), P(8, 14), P(2.5f, 11), P(2.5f, 5)};
+        dl->AddPolyline(hex, 6, col, ImDrawFlags_Closed, w);
+        const ImVec2 v[3] = {P(2.5f, 5), P(8, 8), P(13.5f, 5)};
+        dl->AddPolyline(v, 3, col, ImDrawFlags_None, w);
+        dl->AddLine(P(8, 8), P(8, 14), col, w);
+        break;
+    }
+    case kGlyphAudioBus: {
+        // M2 4h4l3 4M2 12h4l3-4M2 8h12 (1.3)
+        const float w = std::max(1.0f, 1.3f * k);
+        const ImVec2 a[3] = {P(2, 4), P(6, 4), P(9, 8)};
+        const ImVec2 b[3] = {P(2, 12), P(6, 12), P(9, 8)};
+        dl->AddPolyline(a, 3, col, ImDrawFlags_None, w);
+        dl->AddPolyline(b, 3, col, ImDrawFlags_None, w);
+        dl->AddLine(P(2, 8), P(14, 8), col, w);
         break;
     }
     case kGlyphEvPopulated:

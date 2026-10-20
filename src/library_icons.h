@@ -36,6 +36,15 @@ enum LibraryGlyph : int {
     kGlyphEvSpread,     // Spread copy: an outlined light-blue diamond
     kGlyphEvDeleted,    // placed sound deleted by hand: a grey ring
     kGlyphEvMissing,    // sound missing in the last Populate: a red cross
+    // 1-4: the Wwise tree's icons (mock-up step16, table ICONS), appended so the numbers above stay.
+    kGlyphSequence,       // Sequence container: Blend's lines, staggered (a container: accent ink)
+    kGlyphWorkUnit,       // Work Unit: a document with a folded corner
+    kGlyphVirtualFolder,  // Virtual Folder: the folder, dashed (2 / 1.6)
+    kGlyphActorMixer,     // Actor-Mixer: three faders
+    kGlyphSoundVoice,     // Sound Voice: a microphone
+    kGlyphEvent,          // Event: a flag
+    kGlyphSoundBank,      // SoundBank: a package
+    kGlyphAudioBus,       // Audio Bus: three inputs merging into one output
 };
 
 // Draws glyph `which` (LibraryGlyph) in the square at `p` of side `s` with `col`. A ui::IconFn.
@@ -54,6 +63,9 @@ ui::Icon TypeIcon(SoundNodeType t);
 // (#a8c2ff, ui::kAccentInk, the mockup's .trow.sw .ti / .tib), muted for a Sound -- instead of
 // a colour per type.
 ui::Icon TypeIconInk(SoundNodeType t);
+// 1-4: the same ink rule for any LibraryGlyph: kAccentInk for a container (Random, Blend, Switch,
+// Sequence), kMuted for everything else (Sound and the other Wwise objects included).
+ui::Icon LibraryIconInk(int which);
 
 // 13-14 (finishing): the small tool icons the Tagging panel and the Sounds section draw (the default
 // font has no symbols), shared as ui::IconFn glyphs. Each keeps its old 1x drawing: a radius in the

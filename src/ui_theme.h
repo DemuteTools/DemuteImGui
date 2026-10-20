@@ -2,7 +2,7 @@
 //
 // The house theme of Demute's tools (DM-XYZ-Pad lib/ui/theme.lua, validated mock-up
 // maquette-refonte-ui-v2), laid over Dear ImGui (Story 11-4): neutral greys from #121317
-// to #282c34, text #e7e9ee / #8b919c, one accent #5b8cff, radii 10 / 7 / 5, ghost
+// to #282c34, text #e7e9ee / #8b919c, one accent #3568de, radii 10 / 7 / 5, ghost
 // buttons (transparent until hovered), segmented controls, thin discreet scrollbar.
 //
 // ApplyRavTheme sets the live ImGui style once (the whole viewer UI uses it). The
@@ -164,10 +164,11 @@ constexpr ImU32 kFrameHover   = IM_COL32(0x47, 0x4D, 0x59, 0xFF);  // a control 
 constexpr ImU32 kText         = IM_COL32(0xE7, 0xE9, 0xEE, 0xFF);
 constexpr ImU32 kMuted        = IM_COL32(0x8B, 0x91, 0x9C, 0xFF);
 constexpr ImU32 kFaint        = IM_COL32(0x5D, 0x63, 0x6E, 0xFF);
-constexpr ImU32 kAccent       = IM_COL32(0x5B, 0x8C, 0xFF, 0xFF);
-constexpr ImU32 kAccentSoft   = IM_COL32(0x5B, 0x8C, 0xFF, 0x29);  // --accent-soft (.16)
-constexpr ImU32 kAccentLine   = IM_COL32(0x5B, 0x8C, 0xFF, 0x8C);  // --accent-line (.55)
-constexpr ImU32 kPrimaryHover = IM_COL32(0x6D, 0x99, 0xFF, 0xFF);
+constexpr ImU32 kAccent       = IM_COL32(0x35, 0x68, 0xDE, 0xFF);
+constexpr ImU32 kAccentSoft   = IM_COL32(0x35, 0x68, 0xDE, 0x29);  // --accent-soft (.16)
+constexpr ImU32 kAccentLine   = IM_COL32(0x35, 0x68, 0xDE, 0x8C);  // --accent-line (.55)
+constexpr ImU32 kPrimaryHover = IM_COL32(0x2A, 0x5B, 0xCF, 0xFF);  // darker than kAccent: white text stays >= 4.5:1 (6.01)
+constexpr ImU32 kAccentHoverSoft = IM_COL32(0x35, 0x68, 0xDE, 0x3D);  // an on toggle under the mouse (accent .24)
 constexpr ImU32 kOk           = IM_COL32(0x5F, 0xDD, 0x9E, 0xFF);
 constexpr ImU32 kWarn         = IM_COL32(0xFF, 0xD1, 0x66, 0xFF);
 // Story 10-3b -- the amber in-place confirm (overwrite / delete) and the Legacy band: its
@@ -204,7 +205,7 @@ constexpr ImU32 kKnob        = IM_COL32(0xC9, 0xCE, 0xD8, 0xFF);  // --knob: a s
 constexpr ImU32 kKnobLine    = IM_COL32(0xC9, 0xCE, 0xD8, 0x8C);  // its lines (.55): the skeleton's bones
 constexpr ImU32 kPlayhead    = IM_COL32(0xDF, 0xE3, 0xEA, 0xFF);  // the strips' playhead
 constexpr ImU32 kOutsideDim  = IM_COL32(0x12, 0x13, 0x17, 0xA6);  // kBg .65 over a lane outside its item
-constexpr ImU32 kAccentFaint = IM_COL32(0x5B, 0x8C, 0xFF, 0x1A);  // accent .10: a lane's lit row
+constexpr ImU32 kAccentFaint = IM_COL32(0x35, 0x68, 0xDE, 0x1A);  // accent .10: a lane's lit row
 constexpr ImU32 kHatch       = IM_COL32(0x00, 0x00, 0x00, 0x59);  // an off frame's hatch (.35)
 constexpr ImU32 kHatchLight  = IM_COL32(0x00, 0x00, 0x00, 0x33);  // a Blend layer's hatch (.20)
 constexpr ImU32 kRing        = IM_COL32(0xFF, 0xFF, 0xFF, 0x59);  // the white ring of a selected bar (.35)
