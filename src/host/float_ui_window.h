@@ -8,6 +8,11 @@
 //
 // The viewer drives it once per render tick, after its own frame (FloatUiWindow::Frame); a tick that
 // does not call Frame with show = true hides it. Its rect is kept in REAPER's ExtState, in screen pixels.
+//
+// demute-imgui (story 1.2): its rect goes through the host services (host_services.h: SetHostServices once at
+// the plugin entry; without them it opens at its default place and saves nothing), its geometry through
+// float_geometry.h. ImGui 1.92: the shared atlas's texture is the viewer backend's, kept alive by the atlas's
+// RefCount (no more SetTexID). Every FloatUiWindow is known to RouteKey, the accelerator hook's decision.
 
 #pragma once
 
@@ -26,6 +31,10 @@ public:
     // `pref` names its ExtState keys ("<pref>.x" ...), `title` the OS window's title (Alt+Tab, taskbar
     // never: it is a tool window). Sizes in screen pixels.
     FloatUiWindow(const char* pref, const wchar_t* title, int default_w, int default_h, int min_w, int min_h);
+    // Leaves the windows as they are (Destroy frees them); only forgets the object for RouteKey.
+    ~FloatUiWindow();
+    FloatUiWindow(const FloatUiWindow&) = delete;
+    FloatUiWindow& operator=(const FloatUiWindow&) = delete;
 
     // The viewer's GL objects and its ImGui context (the style and font atlas to share). Call before Frame.
     void Bind(HWND viewer, HDC viewer_dc, HGLRC rc);
@@ -48,6 +57,14 @@ public:
     bool WantsText() const;
     HWND Hwnd() const { return hwnd_; }
     bool IsShown() const;
+    // `hwnd` is this window or one of its children (a key message aimed at it).
+    bool Owns(HWND hwnd) const;
+
+    // REAPER's accelerator hook, for a message aimed at any FloatUiWindow (`*is_float` true; else false and
+    // 0): typing in a field, and their own keys (Esc, the arrows, Enter, Tab, Delete / Backspace without
+    // Ctrl / Alt) go to the window (-1); Alt+F4 too (-20); every other key stays REAPER's (0). A message that
+    // is not a key: 0. The decision is FloatWindowKeyRoute (float_key_route.h).
+    static int RouteKey(const MSG* msg, bool* is_float);
 
     // 13-68e: the next Frame puts the window at the mouse, wholly on that monitor's work area, its size kept. Antho
     // 2026-10-19: the pointer at the middle of its title row: x = mouse - width / 2, y = mouse - `header_mid` (the
@@ -83,7 +100,6 @@ private:
     HDC            dc_ = nullptr;
     ImGuiContext*  ctx_ = nullptr;
     ImFontAtlas*   atlas_ = nullptr;
-    ImTextureID    main_tex_ = 0;  // the atlas texture the viewer's backend made
     float          drag_[4] = {0, 0, 0, 0};
     bool           drag_over_widget_ = false;
     bool           rect_dirty_ = false;

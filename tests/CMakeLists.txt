@@ -23,3 +23,16 @@ add_test(NAME theme_headless COMMAND theme_headless_test)
 add_executable(ui_contrast_icons_test ui_contrast_icons_test.cpp)
 target_link_libraries(ui_contrast_icons_test PRIVATE theme)
 add_test(NAME ui_contrast_icons COMMAND ui_contrast_icons_test)
+
+# Story 1.2: the pure parts of the host target (prefs, geometry, key routing, services), on every system.
+add_executable(host_pure_test host_pure_test.cpp ../src/host/host_services.cpp)
+target_include_directories(host_pure_test PRIVATE ${SRC}/host)
+add_test(NAME host_pure COMMAND host_pure_test)
+
+# Windows: every public name of the host target, compiled and linked; run, it opens no window.
+if(WIN32)
+    add_executable(host_compile_check windows/host_compile_check.cpp)
+    target_link_libraries(host_compile_check PRIVATE host)
+    target_compile_definitions(host_compile_check PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
+    add_test(NAME host_compile_check COMMAND host_compile_check)
+endif()

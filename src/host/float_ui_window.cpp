@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 //
-// See float_ui_window.h.
+// See float_ui_window.h. Taken from RAV (float_ui_window.cpp, 47558f9): the prefs go through the host
+// services, the geometry through float_geometry.h, the key routing of RAV's accelerator hook is RouteKey.
 
 #include "float_ui_window.h"
 
@@ -11,13 +12,29 @@
 #include <algorithm>
 #include <string>
 
+#include <GL/gl.h>  // glViewport / glClearColor / glClear (GL 1.1, opengl32)
+
 #include <imgui_internal.h>  // ImGuiContext::IO (WantsText without making the context current)
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_win32.h>
 
-#include "gl_loader.h"
-#include "shortcuts.h"  // LoadPrefFloat / SavePrefFloat
+#include "float_geometry.h"
+#include "float_key_route.h"
+#include "gl_context.h"     // BindDefaultFramebuffer
+#include "host_prefs.h"     // PrefKey
+#include "host_services.h"  // LoadPrefFloat / SavePrefFloat
 #include "ui_theme.h"
+
+// The pure key routing names the codes itself: they are windows.h's.
+static_assert(rav::host::kMsgKeyDown == WM_KEYDOWN && rav::host::kMsgKeyUp == WM_KEYUP && rav::host::kMsgChar == WM_CHAR &&
+                  rav::host::kMsgSysKeyDown == WM_SYSKEYDOWN && rav::host::kMsgSysKeyUp == WM_SYSKEYUP &&
+                  rav::host::kMsgSysChar == WM_SYSCHAR,
+              "float_key_route.h: message codes");
+static_assert(rav::host::kVkBack == VK_BACK && rav::host::kVkTab == VK_TAB && rav::host::kVkReturn == VK_RETURN &&
+                  rav::host::kVkEscape == VK_ESCAPE && rav::host::kVkLeft == VK_LEFT && rav::host::kVkUp == VK_UP &&
+                  rav::host::kVkRight == VK_RIGHT && rav::host::kVkDown == VK_DOWN && rav::host::kVkDelete == VK_DELETE &&
+                  rav::host::kVkF4 == VK_F4,
+              "float_key_route.h: virtual-key codes");
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -29,11 +46,18 @@ constexpr wchar_t kClass[] = L"RAV_FloatUiWindow";
 HINSTANCE         g_class_inst = nullptr;  // the class is registered (by this DLL) while set
 HWND              g_full_screen_owner = nullptr;  // 6-5-9: the viewer while it is full screen
 
-// 6-5-9: gives every tool window of this thread (our class) the owner `lp`.
+// Every FloatUiWindow object (RouteKey). Constant-initialized: safe for objects built as static globals.
+constexpr int  kMaxFloats = 32;
+FloatUiWindow* g_floats[kMaxFloats] = {};
+
+// 6-5-9: gives every tool window of this thread (our class) the owner `lp`. demute-imgui: of this module only
+// (another tool built on the library has a class of the same name, on the same thread).
 BOOL CALLBACK ReownProc(HWND hwnd, LPARAM lp)
 {
     wchar_t cls[64] = {};
-    if (GetClassNameW(hwnd, cls, 64) > 0 && lstrcmpW(cls, kClass) == 0) SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, lp);
+    if (GetClassNameW(hwnd, cls, 64) > 0 && lstrcmpW(cls, kClass) == 0 &&
+        reinterpret_cast<HINSTANCE>(GetWindowLongPtrW(hwnd, GWLP_HINSTANCE)) == g_class_inst)
+        SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, lp);
     return TRUE;
 }
 
@@ -50,7 +74,27 @@ LRESULT CALLBACK FloatProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
 std::string Key(const char* pref, const char* what)
 {
-    return std::string(pref) + "." + what;
+    return host::PrefKey(pref, what);
+}
+
+float LoadPrefFloat(const char* key, float def)
+{
+    return host::LoadPrefFloat(key, def);
+}
+
+void SavePrefFloat(const char* key, float value)
+{
+    host::SavePrefFloat(key, value);
+}
+
+host::IRect ToIRect(const RECT& r)
+{
+    host::IRect i;
+    i.left = r.left;
+    i.top = r.top;
+    i.right = r.right;
+    i.bottom = r.bottom;
+    return i;
 }
 
 // Makes a context current for a scope, then puts the previous one back.
@@ -65,6 +109,17 @@ struct ContextScope {
 FloatUiWindow::FloatUiWindow(const char* pref, const wchar_t* title, int default_w, int default_h, int min_w, int min_h)
     : pref_(pref), title_(title), def_w_(default_w), def_h_(default_h), min_w_(min_w), min_h_(min_h)
 {
+    for (FloatUiWindow*& slot : g_floats)
+        if (!slot) {
+            slot = this;
+            break;
+        }
+}
+
+FloatUiWindow::~FloatUiWindow()
+{
+    for (FloatUiWindow*& slot : g_floats)
+        if (slot == this) slot = nullptr;
 }
 
 void FloatUiWindow::Bind(HWND viewer, HDC viewer_dc, HGLRC rc)
@@ -96,30 +151,23 @@ bool FloatUiWindow::Create()
     }
     // The rect it had (screen pixels), else beside the viewer's right edge; back on a screen when its
     // monitor is gone.
-    const float s = std::max(1.0f, ui::UiScale());
+    const float s = ui::UiScale();
     RECT        vr = {};
     GetWindowRect(viewer_, &vr);
-    int w = static_cast<int>(LoadPrefFloat(Key(pref_, "w").c_str(), static_cast<float>(def_w_) * s));
-    int h = static_cast<int>(LoadPrefFloat(Key(pref_, "h").c_str(), static_cast<float>(def_h_) * s));
-    w = std::max(w, static_cast<int>(min_w_ * s));
-    h = std::max(h, static_cast<int>(min_h_ * s));
-    int  x = static_cast<int>(LoadPrefFloat(Key(pref_, "x").c_str(), -100000.0f));
-    int  y = static_cast<int>(LoadPrefFloat(Key(pref_, "y").c_str(), -100000.0f));
-    if (x <= -99999 || y <= -99999) {
-        x = std::max(static_cast<int>(vr.left), static_cast<int>(vr.right) - w - static_cast<int>(24 * s));
-        y = vr.top + static_cast<int>(40 * s);
-    }
+    const host::FloatRect size =
+        host::FloatInitialSize(LoadPrefFloat(Key(pref_, "w").c_str(), host::FloatDefaultSizePref(def_w_, s)),
+                               LoadPrefFloat(Key(pref_, "h").c_str(), host::FloatDefaultSizePref(def_h_, s)), min_w_, min_h_, s);
+    host::FloatRect fr = host::FloatInitialPosition(LoadPrefFloat(Key(pref_, "x").c_str(), host::kFloatNoPosition),
+                                                    LoadPrefFloat(Key(pref_, "y").c_str(), host::kFloatNoPosition), size.w,
+                                                    ToIRect(vr), s);
+    fr.w = size.w;
+    fr.h = size.h;
     // Wholly on the nearest monitor's work area (it has no system caption: its title row must stay reachable).
-    RECT        r = {x, y, x + w, y + h};
+    RECT        r = {fr.x, fr.y, fr.x + fr.w, fr.y + fr.h};
     MONITORINFO mi = {};
     mi.cbSize = sizeof(mi);
-    if (GetMonitorInfoW(MonitorFromRect(&r, MONITOR_DEFAULTTONEAREST), &mi)) {
-        const RECT& wa = mi.rcWork;
-        w = std::min(w, static_cast<int>(wa.right - wa.left));
-        h = std::min(h, static_cast<int>(wa.bottom - wa.top));
-        x = std::max(static_cast<int>(wa.left), std::min(x, static_cast<int>(wa.right) - w));
-        y = std::max(static_cast<int>(wa.top), std::min(y, static_cast<int>(wa.bottom) - h));
-    }
+    if (GetMonitorInfoW(MonitorFromRect(&r, MONITOR_DEFAULTTONEAREST), &mi)) fr = host::FloatFitToWorkArea(fr, ToIRect(mi.rcWork));
+    const int x = fr.x, y = fr.y, w = fr.w, h = fr.h;
     // Owned by REAPER's main window (the root owner): a floating docker's frame comes and goes with redocks.
     // 6-5-9: by the viewer itself while it is full screen (then in front of it).
     HWND owner = g_full_screen_owner ? g_full_screen_owner : GetAncestor(viewer_, GA_ROOTOWNER);
@@ -139,7 +187,6 @@ bool FloatUiWindow::Create()
     const ImGuiStyle style = ImGui::GetStyle();
     ImFont*          def_font = mio.FontDefault;
     atlas_ = mio.Fonts;
-    main_tex_ = atlas_->TexID;
     ImGuiContext* prev = ImGui::GetCurrentContext();
     ctx_ = ImGui::CreateContext(atlas_);
     ImGui::SetCurrentContext(ctx_);
@@ -186,21 +233,17 @@ void FloatUiWindow::Frame(bool show, bool activate, const std::function<void()>&
         POINT pt = {};
         RECT  wr = {};
         if (GetCursorPos(&pt) && GetWindowRect(hwnd_, &wr)) {
-            int         w = wr.right - wr.left, h = wr.bottom - wr.top;
-            int         x = pt.x - w / 2, y = pt.y - header_mid_;  // the pointer at the title row's middle
+            const int   w = wr.right - wr.left, h = wr.bottom - wr.top;
             MONITORINFO mi = {};
             mi.cbSize = sizeof(mi);
             if (GetMonitorInfoW(MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST), &mi)) {
-                const RECT& wa = mi.rcWork;
-                const int   ww = static_cast<int>(wa.right - wa.left), wh = static_cast<int>(wa.bottom - wa.top);
-                const bool  resize = w > ww || h > wh;
-                w = std::min(w, ww);
-                h = std::min(h, wh);
-                x = std::max(static_cast<int>(wa.left), std::min(x, static_cast<int>(wa.right) - w));
-                y = std::max(static_cast<int>(wa.top), std::min(y, static_cast<int>(wa.bottom) - h));
-                SetWindowPos(hwnd_, nullptr, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | (resize ? 0 : SWP_NOSIZE));
+                const host::IRect               wa = ToIRect(mi.rcWork);
+                const host::FloatMousePlacement p = host::FloatPlaceAtMouse(pt.x, pt.y, w, h, header_mid_, &wa);
+                SetWindowPos(hwnd_, nullptr, p.rect.x, p.rect.y, p.rect.w, p.rect.h,
+                             SWP_NOZORDER | SWP_NOACTIVATE | (p.resize ? 0 : SWP_NOSIZE));
             } else {
-                SetWindowPos(hwnd_, nullptr, x, y, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
+                const host::FloatMousePlacement p = host::FloatPlaceAtMouse(pt.x, pt.y, w, h, header_mid_, nullptr);
+                SetWindowPos(hwnd_, nullptr, p.rect.x, p.rect.y, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
             }
         }
     }
@@ -216,8 +259,9 @@ void FloatUiWindow::Frame(bool show, bool activate, const std::function<void()>&
         SetForegroundWindow(hwnd_);
     }
     if (activate) SetFocus(hwnd_);
+    // ImGui 1.92: the shared atlas's textures are made once, by whichever backend sees them first, in the
+    // shared GL context; this backend reads the same ones (no SetTexID).
     ImGui_ImplOpenGL3_NewFrame();
-    atlas_->SetTexID(main_tex_);  // its backend made a texture of its own: both read the viewer's, alive in the shared context
     ImGui_ImplWin32_NewFrame();
     {  // The modifiers as they are now: a Ctrl released while the key went to REAPER is never held here.
         ImGuiIO& io = ImGui::GetIO();
@@ -230,7 +274,7 @@ void FloatUiWindow::Frame(bool show, bool activate, const std::function<void()>&
     ui::EndToolWindowFill();
     ImGui::Render();
     const ImGuiIO& io = ImGui::GetIO();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    host::BindDefaultFramebuffer();
     glViewport(0, 0, static_cast<int>(io.DisplaySize.x * io.DisplayFramebufferScale.x),
                static_cast<int>(io.DisplaySize.y * io.DisplayFramebufferScale.y));
     const ImVec4 bg = ui::Col(ui::kRaised);
@@ -281,6 +325,27 @@ bool FloatUiWindow::IsShown() const
     return hwnd_ && IsWindowVisible(hwnd_);
 }
 
+bool FloatUiWindow::Owns(HWND hwnd) const
+{
+    return hwnd_ && hwnd && (hwnd == hwnd_ || IsChild(hwnd_, hwnd));
+}
+
+int FloatUiWindow::RouteKey(const MSG* msg, bool* is_float)
+{
+    if (is_float) *is_float = false;
+    if (!msg) return host::kFloatRouteReaper;
+    bool owned = false, wants_text = false;
+    for (const FloatUiWindow* w : g_floats) {
+        if (!w) continue;
+        owned = owned || w->Owns(msg->hwnd);
+        wants_text = wants_text || w->WantsText();
+    }
+    if (!owned) return host::kFloatRouteReaper;
+    if (is_float) *is_float = true;
+    const bool ctrl = GetKeyState(VK_CONTROL) < 0, alt = GetKeyState(VK_MENU) < 0;
+    return host::FloatWindowKeyRoute(msg->message, static_cast<unsigned>(msg->wParam), ctrl, alt, wants_text);
+}
+
 void FloatUiWindow::Hide()
 {
     if (!hwnd_ || !IsWindowVisible(hwnd_)) return;
@@ -297,7 +362,7 @@ void FloatUiWindow::Destroy()
         if (rc_ && ((own_dc && wglMakeCurrent(dc_, rc_)) || wglMakeCurrent(viewer_dc_, rc_))) ImGui_ImplOpenGL3_Shutdown();
         if (rc_) wglMakeCurrent(viewer_dc_, rc_);
         ImGui_ImplWin32_Shutdown();
-        if (atlas_) atlas_->SetTexID(main_tex_);  // its backend cleared the shared atlas's texture: the viewer's again
+        // ImGui 1.92: its backend destroyed only the textures it alone used (RefCount 1): the shared atlas's stay.
     }
     if (ctx_) {
         ImGuiContext* prev = ImGui::GetCurrentContext();
@@ -359,24 +424,24 @@ LRESULT FloatUiWindow::Proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         ScreenToClient(hwnd, &pt);
         RECT rc = {};
         GetClientRect(hwnd, &rc);
-        const int  b = std::max(4, static_cast<int>(6.0f * std::max(1.0f, ui::UiScale())));
-        const bool l = pt.x < b, r = pt.x >= rc.right - b, t = pt.y < b, d = pt.y >= rc.bottom - b;
-        if (t && l) return HTTOPLEFT;
-        if (t && r) return HTTOPRIGHT;
-        if (d && l) return HTBOTTOMLEFT;
-        if (d && r) return HTBOTTOMRIGHT;
-        if (l) return HTLEFT;
-        if (r) return HTRIGHT;
-        if (t) return HTTOP;
-        if (d) return HTBOTTOM;
-        if (!drag_over_widget_ && pt.x >= drag_[0] && pt.x < drag_[2] && pt.y >= drag_[1] && pt.y < drag_[3]) return HTCAPTION;
+        switch (host::FloatHitTest(pt.x, pt.y, ToIRect(rc), ui::UiScale(), drag_, drag_over_widget_)) {
+        case host::FloatHit::TopLeft: return HTTOPLEFT;
+        case host::FloatHit::TopRight: return HTTOPRIGHT;
+        case host::FloatHit::BottomLeft: return HTBOTTOMLEFT;
+        case host::FloatHit::BottomRight: return HTBOTTOMRIGHT;
+        case host::FloatHit::Left: return HTLEFT;
+        case host::FloatHit::Right: return HTRIGHT;
+        case host::FloatHit::Top: return HTTOP;
+        case host::FloatHit::Bottom: return HTBOTTOM;
+        case host::FloatHit::Caption: return HTCAPTION;
+        case host::FloatHit::Client: break;
+        }
         return HTCLIENT;
     }
     case WM_GETMINMAXINFO: {
         MINMAXINFO* mm = reinterpret_cast<MINMAXINFO*>(lp);
-        const float s = std::max(1.0f, ui::UiScale());
-        mm->ptMinTrackSize.x = static_cast<LONG>(min_w_ * s);
-        mm->ptMinTrackSize.y = static_cast<LONG>(min_h_ * s);
+        mm->ptMinTrackSize.x = static_cast<LONG>(host::FloatMinSize(min_w_, ui::UiScale()));
+        mm->ptMinTrackSize.y = static_cast<LONG>(host::FloatMinSize(min_h_, ui::UiScale()));
         return 0;
     }
     case WM_MOVE:
