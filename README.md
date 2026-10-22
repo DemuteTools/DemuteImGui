@@ -12,6 +12,9 @@ MIT licence. Provisional name.
   OpenGL3 backends (`demute_imgui_backends`). No REAPER SDK include: REAPER is reached through injected
   services. Outside Windows the target is not configured; its pure parts (`host_prefs.h`, `float_geometry.h`,
   `float_key_route.h`) and the services are tested everywhere (`host_pure_test`).
+  Every GL context switch goes through `rav::GlMakeCurrent` (`gl_switch.h`, RAV's freeze fix of
+  2026-10-21): one lock per binary, a switch that waits more than 500 ms fails and its frame is skipped.
+  A tool that switches contexts itself (on a video thread, say) calls it too.
 
 Aliases: `demute_imgui::theme`, `demute_imgui::host`.
 

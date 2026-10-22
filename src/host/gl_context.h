@@ -26,7 +26,8 @@ void DestroyGlWindowContext(HWND owner, HDC* dc, HGLRC* rc);
 void SetSwapInterval(int interval);
 
 // Makes (`dc`, `rc`) current for a scope when another context is current (stolen by another plugin on
-// the same thread), then puts the previous one back. ok() is false when it could not be made current.
+// the same thread) or this one on another DC, then puts the previous one back. ok() is false when it
+// could not be made current.
 class GlCurrentScope {
 public:
     GlCurrentScope(HDC dc, HGLRC rc);

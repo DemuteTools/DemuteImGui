@@ -107,8 +107,9 @@ int main()
             CHECK(!same);
         }
 
-    // The enum keeps the numbers of the existing glyphs (new ones appended).
-    CHECK(kGlyphSound == 0 && kGlyphSpeaker == 6 && kGlyphEvMissing == 11 && kGlyphSequence == 12 && kGlyphAudioBus == 19);
+    // The enum keeps RAV's numbers (kGlyphLink is 12 there); the Wwise icons follow them.
+    CHECK(kGlyphSound == 0 && kGlyphSpeaker == 6 && kGlyphEvMissing == 11 && kGlyphLink == 12);
+    CHECK(kGlyphSequence == 13 && kGlyphAudioBus == 20);
 
     // 3. Ink.
     for (int g : {kGlyphRandom, kGlyphBlend, kGlyphSwitch, kGlyphSequence}) CHECK(LibraryIconInk(g).col == ui::kAccentInk);

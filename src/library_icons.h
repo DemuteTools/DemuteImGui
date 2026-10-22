@@ -36,6 +36,7 @@ enum LibraryGlyph : int {
     kGlyphEvSpread,     // Spread copy: an outlined light-blue diamond
     kGlyphEvDeleted,    // placed sound deleted by hand: a grey ring
     kGlyphEvMissing,    // sound missing in the last Populate: a red cross
+    kGlyphLink,         // 13-77a: a library linked to a .ravlib
     // 1-4: the Wwise tree's icons (mock-up step16, table ICONS), appended so the numbers above stay.
     kGlyphSequence,       // Sequence container: Blend's lines, staggered (a container: accent ink)
     kGlyphWorkUnit,       // Work Unit: a document with a folded corner
@@ -49,6 +50,9 @@ enum LibraryGlyph : int {
 
 // Draws glyph `which` (LibraryGlyph) in the square at `p` of side `s` with `col`. A ui::IconFn.
 void DrawLibraryGlyph(ImDrawList* dl, ImVec2 p, float s, int which, ImU32 col);
+
+// 13-77a: the mockup's link glyph (ICON.link, a chain of two links), `s` px wide, stroked with `col`.
+void DrawLinkGlyph(ImDrawList* dl, ImVec2 p, float s, ImU32 col);
 
 // Draws a Tagging strip mark (kGlyphEv*) centred on `c`, `s` px wide (the mock-up's 9 px).
 void DrawEventGlyph(ImDrawList* dl, ImVec2 c, float s, int which);

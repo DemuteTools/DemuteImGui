@@ -63,13 +63,15 @@ void DrawIcons(ImDrawList* dl)
 {
     ImVec2 p = ImGui::GetCursorScreenPos();
     const float s = ui::IconPx();
-    // Every Library icon (LibraryGlyph), every tool icon (ToolGlyph), the four node types.
-    for (int g = kGlyphSound; g <= kGlyphEvMissing; ++g) {
+    // Every Library icon (LibraryGlyph, kGlyphAudioBus last), every tool icon (ToolGlyph), the four node types.
+    for (int g = kGlyphSound; g <= kGlyphAudioBus; ++g) {
         DrawLibraryGlyph(dl, p, s, g, ui::kMuted);
         p.x += s + 4.0f;
     }
     DrawEventGlyph(dl, ImVec2(p.x + 5.0f, p.y + 5.0f), 9.0f, kGlyphEvAttached);
     p.x += 14.0f;
+    DrawLinkGlyph(dl, p, s, ui::kAccentInk);
+    p.x += s + 4.0f;
     for (int g = kToolCross; g <= kToolOpenArrow; ++g) {
         DrawToolGlyph(dl, p, s, g, ui::kText);
         DrawToolGlyphAt(dl, ImVec2(p.x + s * 0.5f, p.y + s * 2.0f), 4.0f, g, ui::kAccent);
@@ -112,6 +114,14 @@ void DrawWidgets(int frame)
     ImGui::SameLine();
     ui::SmallTag("small");
     ImGui::SameLine();
+    {
+        ImDrawList* tdl = ImGui::GetWindowDrawList();
+        const ImVec2 tp = ImGui::GetCursorScreenPos();
+        const float  tw = ui::DrawSmallTagTone(tdl, tp, "both", ui::kBoth, ui::kBothLine, ui::kBothSoft);
+        CHECK(tw > 0.0f);
+        ImGui::Dummy(ImVec2(tw, ui::SmallTagHeight()));
+    }
+    ImGui::SameLine();
     ui::CountChip("12");
     ui::StateTag(ui::kOk, "state");
     CHECK(ui::TagWidth("proj") > 0.0f);
@@ -125,6 +135,9 @@ void DrawWidgets(int frame)
     ImGui::SameLine();
     ui::ChipButton("Chip", ImVec2(0, 0), true);
     ImGui::SameLine();
+    ui::SplitChip("Split chip", ToolIcon(kToolPlus), true, frame % 2 == 0, true, frame % 2 == 1);
+    ImGui::SameLine();
+    CHECK(ui::SplitChipWidth("Split chip") > 0.0f && ui::SplitChipWidth("Split chip", true, 40.0f) > 0.0f);
     ui::LinkButton("Link");
     ImGui::SameLine();
     ui::HelpMark("help", "A help mark");
@@ -183,6 +196,10 @@ void DrawWidgets(int frame)
     ui::LabelRow("Label", 100.0f);
     ImGui::TextUnformatted("beside");
     ui::FitText("Some text that may be cut when the window is narrow");
+    ui::ClampedText("A hint long enough to wrap over two lines\nand then be cut on the last one, in a narrow "
+                    "window or a wide one, whatever its width may be today",
+                    ui::kMuted, 2);
+    ui::ClampedText("Short", ui::kMuted, 2, true);
     CHECK(ui::TextWidth("abc") > 0.0f && ui::ButtonWidth("abc") > 0.0f);
 
     // Containers: card, well, toolbar, confirm band, pane, section, sentence.
@@ -255,6 +272,15 @@ void DrawWidgets(int frame)
         }
         ui::MenuSeparator();
         ui::EndMenuPopup();
+    }
+
+    // Confirm bubble over a button (opened on the third frame, after the menu popup closed).
+    ui::SolidButton("Delete");
+    const ImVec2 anchor(ImGui::GetItemRectMax().x, ImGui::GetItemRectMin().y);
+    if (frame == 2) ImGui::OpenPopup("bubble");
+    if (ui::BeginConfirmBubble("bubble", anchor)) {
+        ImGui::TextUnformatted("Delete it?");
+        ui::EndConfirmBubble();
     }
 
     // Icons.

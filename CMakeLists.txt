@@ -63,6 +63,7 @@ if(WIN32)
     add_library(host STATIC
         src/host/host_services.cpp
         src/host/gl_context.cpp
+        src/host/gl_switch.cpp
         src/host/ui_fonts.cpp
         src/host/docked_panel.cpp
         src/host/float_ui_window.cpp)

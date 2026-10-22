@@ -7,6 +7,8 @@
 
 #include <imgui.h>
 
+#include "gl_switch.h"
+
 namespace rav {
 namespace host {
 
@@ -50,7 +52,7 @@ bool CreateGlWindowContext(HWND hwnd, HDC* out_dc, HGLRC* out_rc)
 void DestroyGlWindowContext(HWND owner, HDC* dc, HGLRC* rc)
 {
     if (rc && *rc) {
-        wglMakeCurrent(nullptr, nullptr);
+        GlMakeCurrent(nullptr, nullptr);
         wglDeleteContext(*rc);
         *rc = nullptr;
     }
@@ -77,8 +79,10 @@ GlCurrentScope::GlCurrentScope(HDC dc, HGLRC rc)
     prev_rc_ = wglGetCurrentContext();
     prev_dc_ = wglGetCurrentDC();
     if (!dc || !rc) return;
-    switched_ = prev_rc_ != rc;
-    if (switched_ && !wglMakeCurrent(dc, rc)) {
+    // Its DC too (RAV freeze fix 2026-10-21): a floating window whose switch back timed out leaves this
+    // context current on ITS DC.
+    switched_ = prev_rc_ != rc || prev_dc_ != dc;
+    if (switched_ && !GlMakeCurrent(dc, rc)) {
         switched_ = false;
         return;
     }
@@ -87,7 +91,7 @@ GlCurrentScope::GlCurrentScope(HDC dc, HGLRC rc)
 
 GlCurrentScope::~GlCurrentScope()
 {
-    if (switched_) wglMakeCurrent(prev_dc_, prev_rc_);
+    if (switched_) GlMakeCurrent(prev_dc_, prev_rc_);
 }
 
 ImGuiContextScope::ImGuiContextScope(ImGuiContext* ctx)

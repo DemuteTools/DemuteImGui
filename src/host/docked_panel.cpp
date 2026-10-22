@@ -13,6 +13,7 @@
 #include <backends/imgui_impl_win32.h>
 
 #include "gl_context.h"
+#include "gl_switch.h"
 #include "host_services.h"
 #include "ui_fonts.h"
 
@@ -143,7 +144,7 @@ bool DockedPanel::StartRendering(HWND hwnd)
             NameOf(config_));
         return false;
     }
-    if (!wglMakeCurrent(dc_, rc_)) {
+    if (!GlMakeCurrent(dc_, rc_)) {
         Log(LogLevel::Error, "%s: failed to activate the OpenGL context (wglMakeCurrent); the panel did not open "
                              "(REAPER is unaffected)",
             NameOf(config_));
@@ -185,7 +186,7 @@ void DockedPanel::StopRendering()
     }
     if (rendering_) {
         rendering_ = false;
-        if (rc_) wglMakeCurrent(dc_, rc_);
+        if (rc_) GlMakeCurrent(dc_, rc_);
         {
             ImGuiContextScope scope(imgui_);
             if (cb_.on_before_shutdown) cb_.on_before_shutdown(*this);
