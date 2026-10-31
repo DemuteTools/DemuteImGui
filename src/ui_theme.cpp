@@ -322,6 +322,13 @@ float RowH() { return Dp(28.0f); }
 float SectionHeaderH() { return Dp(26.0f); }
 float MenuRowH() { return Dp(26.0f); }
 
+namespace {
+ListDensity g_list_density = ListDensity::Normal;
+}  // namespace
+void SetListDensity(ListDensity d) { g_list_density = d; }
+ListDensity GetListDensity() { return g_list_density; }
+float ListRowH() { return g_list_density == ListDensity::Compact ? Dp(22.0f) : RowH(); }
+
 void SetFonts(const FontSet& fonts) { g_fonts = fonts; }
 ImFont* FontBody()        { return DefaultFont(); }
 ImFont* FontSmall()       { return FontOr(g_fonts.small, DefaultFont()); }
@@ -2184,7 +2191,7 @@ void RowBackground(ImDrawList* dl, ImVec2 a, ImVec2 b, unsigned bits, float radi
 
 bool SelectRow(const char* label, bool selected, unsigned bits, float height, int sflags, float radius, float width)
 {
-    const float h = height > 0.0f ? height : RowH();
+    const float h = height > 0.0f ? height : ListRowH();
     const ImU32 ink = ImGui::GetColorU32(ImGuiCol_Text);
     ImGui::PushStyleColor(ImGuiCol_Header, Col(IM_COL32(0, 0, 0, 0)));
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, Col(IM_COL32(0, 0, 0, 0)));

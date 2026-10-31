@@ -190,6 +190,15 @@ void DrawWidgets(int frame)
 
     // Rows, chevron, labels.
     ui::SelectRow("A row", frame % 2 == 0);
+    // The list density: Normal (the default) is RowH(), Compact is ControlH(); SelectRow follows it.
+    CHECK(ui::GetListDensity() == ui::ListDensity::Normal && ui::ListRowH() == ui::RowH());
+    CHECK(ImGui::GetItemRectSize().y == ui::RowH());
+    ui::SetListDensity(ui::ListDensity::Compact);
+    CHECK(ui::ListRowH() == ui::ControlH() && ui::ListRowH() < ui::RowH());
+    ui::SelectRow("A compact row", false);
+    CHECK(ImGui::GetItemRectSize().y == ui::ControlH());
+    ui::SetListDensity(ui::ListDensity::Normal);
+    CHECK(ui::ListRowH() == ui::RowH());
     ui::Chevron("chev", true);
     ImGui::SameLine();
     ui::Chevron("chev2", false);

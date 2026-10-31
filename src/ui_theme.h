@@ -22,6 +22,9 @@
 //    FieldH()    24    text fields, combos (input.txt, select), toolbar buttons (.tbb)
 //    LargeH()    26    full-size buttons (.btn, the Play button): SolidButton(l, {0, LargeH()})
 //    RowH()      28    tree / list rows (.trow, .lrow)
+//    ListRowH()  28    the rows of a dynamic list (one line per object: a table, a rename list).
+//                      RowH() at the Normal density (the default); 22 (= ControlH) at Compact,
+//                      set once by a tool that wants denser lists: SetListDensity(Compact)
 //    SectionHeaderH() 26, MenuRowH() 26, kCardGap 8, kLabelCol 80 (the .row > .k column)
 //    ItemSpacing (6, 7) is the theme's default (.row gap 6, .secx-b gap 7).
 //
@@ -271,6 +274,16 @@ float LargeH();          // 26: .btn, .playbig
 float RowH();            // 28: .trow, .lrow
 float SectionHeaderH();  // 26: .secx-h
 float MenuRowH();        // 26: .pop .mi
+
+// The density of the dynamic lists (one row per object, stacked with no gap between rows).
+// Normal (the default) keeps RowH(): nothing changes for a tool that never calls the setter.
+// Compact: 22 (= ControlH, so a checkbox, a small button or a rename field in a row still fits
+// it exactly; the text keeps its font). A tool sets it once, at start-up; a list reads
+// ListRowH() for its row height (and its clipper's step), never RowH() directly.
+enum class ListDensity { Normal, Compact };
+void SetListDensity(ListDensity d);
+ListDensity GetListDensity();
+float ListRowH();        // Normal 28 (RowH), Compact 22
 
 // ---- fonts (13-7: the mock-up's --font Segoe UI and --mono Cascadia Mono / Consolas) ----
 // The viewer builds the atlas and registers its fonts here once; a role whose font could
@@ -641,7 +654,7 @@ enum RowBits : unsigned {
 // and its edge (a rule's colour).
 void RowBackground(ImDrawList* dl, ImVec2 a, ImVec2 b, unsigned bits, float radius = kRadiusSm, ImU32 stripe = 0);
 // A Selectable drawn as a row: ImGui's own highlight off, RowBackground behind, the visible part
-// of `label` (if any) at 6 px, ellipsized. `height` 0 = RowH(); full width. Hover counts the whole
+// of `label` (if any) at 6 px, ellipsized. `height` 0 = ListRowH() (RowH() at the default density); full width. Hover counts the whole
 // row (its overlaid buttons included). `bits` adds kRowLit / kRowCurrent / kRowEven /
 // kRowBarSelect. `sflags`: ImGuiSelectableFlags (AllowDoubleClick, AllowOverlap...).
 // Returns true when clicked.
