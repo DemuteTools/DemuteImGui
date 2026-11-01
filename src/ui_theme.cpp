@@ -2285,7 +2285,11 @@ void DashedRect(ImDrawList* dl, ImVec2 a, ImVec2 b, ImU32 col, float radius, flo
     ImVector<ImVec2> pts = dl->_Path;
     dl->PathClear();
     if (pts.Size < 2) return;
-    pts.push_back(pts[0]);
+    // Close the outline with a copy of the first point: ImVector::push_back takes a reference and, when it
+    // grows, reallocates before copying it, so push_back(pts[0]) read freed memory (a closing segment from a
+    // garbage point: stray diagonal lines whenever the allocator had reused the block).
+    const ImVec2 first = pts[0];
+    pts.push_back(first);
     bool  on = true;
     float left = dash;
     int   budget = 20000;  // hard cap on the steps walked (a screen's outline is a few thousand)
