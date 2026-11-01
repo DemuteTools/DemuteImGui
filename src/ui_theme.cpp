@@ -1156,6 +1156,7 @@ struct DragNumberState {
     int         seen_frame = -1;   // the frame the dragged / typed field was last drawn
 };
 DragNumberState g_dn;
+NumberAlign     g_number_align = NumberAlign::Right;
 
 double RoundTo(double v, int decimals) { return DragRound(v, decimals); }
 
@@ -1187,6 +1188,9 @@ void FormatNumber(char* out, size_t n, double v, int decimals, bool trim, bool s
 }
 
 }  // namespace
+
+void SetNumberAlign(NumberAlign a) { g_number_align = a; }
+NumberAlign GetNumberAlign() { return g_number_align; }
 
 bool DragNumberActive()
 {
@@ -1291,7 +1295,7 @@ DragNumberEvent DragNumber(const char* id, double* value, double step, int decim
         }
         if (hovered || active) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
         // 13-7 (B6): the .lnum field: raised, a stroke edge (stroke-strong under the mouse), r5,
-        // the number in mono 11 right-aligned 5 px from its edge.
+        // the number in mono 11 right-aligned 5 px from its edge (SetNumberAlign(Centre): centred).
         ImDrawList* dl = ImGui::GetWindowDrawList();
         const ImVec2 p1(p0.x + w, p0.y + h);
         dl->AddRectFilled(p0, p1, Ink(kRaised), Dp(kRadiusSm));
@@ -1299,7 +1303,9 @@ DragNumberEvent DragNumber(const char* id, double* value, double step, int decim
         FormatNumber(text, sizeof(text), *value, decimals, trim, sign);
         const ImVec2 ts = TextSizeIn(mono, text);
         dl->PushClipRect(p0, p1, true);
-        AddTextIn(dl, mono, ImVec2(std::max(p0.x + Dp(3.0f), p1.x - Dp(5.0f) - ts.x), std::floor(p0.y + (h - ts.y) * 0.5f)),
+        const float tx = g_number_align == NumberAlign::Centre ? std::floor(p0.x + (w - ts.x) * 0.5f)
+                                                                : p1.x - Dp(5.0f) - ts.x;
+        AddTextIn(dl, mono, ImVec2(std::max(p0.x + Dp(3.0f), tx), std::floor(p0.y + (h - ts.y) * 0.5f)),
                   Ink(text_col ? text_col : kText), text);
         dl->PopClipRect();
     }

@@ -166,6 +166,12 @@ void DrawWidgets(int frame)
 
     // Numbers and fields.
     ui::DragNumber("num", &num, 0.1, 2, "dB");
+    // The number's alignment: Right by default (RAV unchanged), Centre once set.
+    CHECK(ui::GetNumberAlign() == ui::NumberAlign::Right);
+    ui::SetNumberAlign(ui::NumberAlign::Centre);
+    CHECK(ui::GetNumberAlign() == ui::NumberAlign::Centre);
+    ui::DragNumber("num_c", &num, 0.1, 2, "dB", 80.0f);
+    ui::SetNumberAlign(ui::NumberAlign::Right);
     ui::Fader("fader", &fader, 0.0f, 1.0f, 200.0f);
     ui::TextField("tf", "hint", text, sizeof text);
     ui::TextField("tf2", "empty hint", hint, sizeof hint);

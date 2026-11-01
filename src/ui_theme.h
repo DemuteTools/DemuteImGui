@@ -53,6 +53,7 @@
 //    Segmented   22 px options, 13 px icons, per-option badge ("new")
 //    Fader       thin track, accent fill, round thumb (B5); IsItemActive/Deactivated hold
 //    DragNumber  22 px raised field, mono 11 right-aligned, unit 10 px faint (B6);
+//                SetNumberAlign(Centre) centres the number in every DragNumber instead
 //                `trim` shows "0" / "-14.5" instead of "0.0"
 //    TextField   dark field + stroke edge, accent-line edge while typing (B7);
 //                TitleField (transparent until hovered, 14/600), RenameField (accent-line
@@ -526,6 +527,12 @@ enum class DragNumberEvent {
 // 13-62: `sign` writes a positive value with its "+" ("+3": a gain; 0 stays "0").
 DragNumberEvent DragNumber(const char* id, double* value, double step, int decimals, const char* unit,
                            float width = 0.0f, bool trim = false, ImU32 text_col = 0, bool sign = false);
+// Where every DragNumber draws its number (not while typed into: the text field's own place).
+// Right (the default, 5 px from the edge) keeps the look of a tool that never calls the setter
+// (RAV); Centre: centred in the field. A tool sets it once, at start-up.
+enum class NumberAlign { Right, Centre };
+void SetNumberAlign(NumberAlign a);
+NumberAlign GetNumberAlign();
 // True while a DragNumber is dragged or typed into (the viewer routes Esc to it).
 bool DragNumberActive();
 // Forgets a running drag / typed value (its view went away; the caller ends the gesture).
