@@ -72,7 +72,7 @@ void DrawIcons(ImDrawList* dl)
     p.x += 14.0f;
     DrawLinkGlyph(dl, p, s, ui::kAccentInk);
     p.x += s + 4.0f;
-    for (int g = kToolCross; g <= kToolOpenArrow; ++g) {
+    for (int g = kToolCross; g <= kToolPopOut; ++g) {
         DrawToolGlyph(dl, p, s, g, ui::kText);
         DrawToolGlyphAt(dl, ImVec2(p.x + s * 0.5f, p.y + s * 2.0f), 4.0f, g, ui::kAccent);
         p.x += s + 4.0f;

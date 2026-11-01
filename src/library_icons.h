@@ -87,6 +87,7 @@ enum ToolGlyph : int {
     kToolGear,
     kToolCheck,       // ok
     kToolOpenArrow,   // a diagonal arrow up-right (open the Library view)
+    kToolPopOut,      // open in a floating window: a square with an arrow leaving its top-right corner
 };
 
 // Draws tool glyph `which` (ToolGlyph) in the square at `p` of side `s` with `col`. A ui::IconFn.

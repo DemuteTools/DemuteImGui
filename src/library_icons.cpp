@@ -410,6 +410,27 @@ void IconOpenArrow(ImDrawList* dl, ImVec2 c, float r, ImU32 col)
     dl->AddLine(b, ImVec2(b.x, b.y + s * 0.4f), col, t);
 }
 
+// The pop-out icon, "open in a floating window": a square (the window) open at its top-right corner, with
+// an arrow leaving it towards that corner. `r` the half side of its square.
+void IconPopOut(ImDrawList* dl, ImVec2 c, float r, ImU32 col)
+{
+    const float  s = 2.0f * r;
+    const ImVec2 p(c.x - r, c.y - r);
+    const float  t = std::max(1.0f, ui::Dp(1.5f));
+    // The window: left, bottom, right edges and the top edge up to the arrow's gap.
+    const ImVec2 tl(p.x + s * 0.1f, p.y + s * 0.25f), bl(p.x + s * 0.1f, p.y + s * 0.9f);
+    const ImVec2 br(p.x + s * 0.75f, p.y + s * 0.9f), rt(p.x + s * 0.75f, p.y + s * 0.55f);
+    dl->AddLine(tl, ImVec2(p.x + s * 0.4f, tl.y), col, t);
+    dl->AddLine(tl, bl, col, t);
+    dl->AddLine(bl, br, col, t);
+    dl->AddLine(br, rt, col, t);
+    // The arrow, out of the corner.
+    const ImVec2 a(p.x + s * 0.45f, p.y + s * 0.55f), b(p.x + s * 0.92f, p.y + s * 0.08f);
+    dl->AddLine(a, b, col, t);
+    dl->AddLine(b, ImVec2(b.x - s * 0.32f, b.y), col, t);
+    dl->AddLine(b, ImVec2(b.x, b.y + s * 0.32f), col, t);
+}
+
 // Each glyph's radius in the 14 px square (the old 1x drawing's).
 float ToolGlyphRadius(int which)
 {
@@ -420,7 +441,8 @@ float ToolGlyphRadius(int which)
     case kToolLockClosed: return 4.5f;
     case kToolUndo: return 5.0f;
     case kToolGear: return 6.0f;
-    case kToolOpenArrow: return 7.0f;  // the whole square
+    case kToolOpenArrow:
+    case kToolPopOut: return 7.0f;  // the whole square
     default: return 4.0f;
     }
 }
@@ -442,6 +464,7 @@ void DrawToolGlyphAt(ImDrawList* dl, ImVec2 c, float r, int which, ImU32 col)
     case kToolGear: IconGear(dl, c, r, col); break;
     case kToolCheck: IconCheck(dl, c, r, col); break;
     case kToolOpenArrow: IconOpenArrow(dl, c, r, col); break;
+    case kToolPopOut: IconPopOut(dl, c, r, col); break;
     default: break;
     }
 }
