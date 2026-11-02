@@ -274,6 +274,17 @@ void DrawWidgets(int frame)
     ui::RowBackground(dl, ImVec2(p.x + 170, p.y), ImVec2(p.x + 260, p.y + 20), ui::kRowSelected);
     ImGui::Dummy(ImVec2(300, 44));
     CHECK(!ui::EllipsizeToWidth(nullptr, "A very long text indeed", 60.0f).empty());
+    {   // middle ellipsis: the start and the end kept, whole characters, fits
+        const std::string name = "AKE_SCA__SFX_Creature_Combat_Death02_VOX";
+        ImFont* f = ImGui::GetFont();
+        CHECK(ui::EllipsizeMiddleToWidth(f, name, 10000.0f) == name);
+        const std::string m = ui::EllipsizeMiddleToWidth(f, name, 120.0f);
+        CHECK(m.find("...") != std::string::npos);
+        CHECK(m.rfind("AKE", 0) == 0);
+        CHECK(m.size() >= 4 && m.compare(m.size() - 4, 4, "_VOX") == 0);
+        CHECK(f->CalcTextSizeA(f->LegacySize, FLT_MAX, 0.0f, m.c_str()).x <= 120.0f);
+        CHECK(ui::EllipsizeMiddleToWidth(f, name, 1.0f).empty());
+    }
 
     // Menu popup (opened on the first frame).
     if (frame == 0) ImGui::OpenPopup("menu");

@@ -784,6 +784,12 @@ bool EllipsisText(ImDrawList* dl, ImVec2 p, float max_x, ImU32 col, const std::s
 // `font` (UTF-8 safe: a character's continuation bytes go with its lead byte); "" when even "..." does
 // not fit, `text` itself when it fits.
 std::string EllipsizeToWidth(ImFont* font, const std::string& text, float max_w);
+// Middle ellipsis (RAW step31b, long names that differ at their end: AKE_SCA__SFX_..._Death02_VOX):
+// `text` shortened to its start (about 30 % of the characters kept) + "..." + its end, whole UTF-8
+// characters, at most max_w wide in `font`; `text` itself when it fits, "" when even "..." does not.
+std::string EllipsizeMiddleToWidth(ImFont* font, const std::string& text, float max_w);
+// Text from p in the current font, shortened in the middle so it ends before max_x. True when shortened.
+bool MiddleEllipsisText(ImDrawList* dl, ImVec2 p, float max_x, ImU32 col, const std::string& text);
 // `text` drawn turned a quarter (writing-mode: vertical-rl), centred on cx from `top` down: reading top
 // to bottom (`down`), or bottom to top (rotate(180deg)). Clipped to clip_min..clip_max (the strip).
 void VerticalText(ImDrawList* dl, ImFont* font, float cx, float top, ImU32 col, const std::string& text, bool down,

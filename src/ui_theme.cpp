@@ -15,6 +15,7 @@
 #include <cstring>
 #include <string>
 #include <system_error>
+#include <vector>
 
 #include <imgui_internal.h>  // a card narrows the window's work rect; next-item width; hovered ids
 
@@ -2423,6 +2424,48 @@ std::string EllipsizeToWidth(ImFont* font, const std::string& text, float max_w)
         if (width(t + "...") <= max_w) return t + "...";
     }
     return std::string();
+}
+
+namespace {
+// The byte offsets where each UTF-8 character starts, then text.size().
+std::vector<size_t> Utf8Starts(const std::string& text)
+{
+    std::vector<size_t> at;
+    for (size_t i = 0; i < text.size(); ++i)
+        if ((static_cast<unsigned char>(text[i]) & 0xC0) != 0x80) at.push_back(i);
+    at.push_back(text.size());
+    return at;
+}
+}  // namespace
+
+std::string EllipsizeMiddleToWidth(ImFont* font, const std::string& text, float max_w)
+{
+    if (!font) return text;
+    auto width = [&](const std::string& t) { return font->CalcTextSizeA(font->LegacySize, FLT_MAX, 0.0f, t.c_str()).x; };
+    if (width(text) <= max_w) return text;
+    if (width("...") > max_w) return std::string();
+    const std::vector<size_t> at = Utf8Starts(text);
+    const int n = static_cast<int>(at.size()) - 1;  // characters
+    // k characters kept: ceil(k * 0.3) from the start, the rest from the end (the mock-up's fitMid).
+    auto cut = [&](int k) {
+        const int head = (k * 3 + 9) / 10;
+        const int tail = k - head;
+        return text.substr(0, at[static_cast<size_t>(head)]) + "..." + text.substr(at[static_cast<size_t>(n - tail)]);
+    };
+    int lo = 0, hi = n - 1;
+    while (lo < hi) {
+        const int k = (lo + hi + 1) / 2;
+        if (width(cut(k)) <= max_w) lo = k; else hi = k - 1;
+    }
+    return cut(lo);
+}
+
+bool MiddleEllipsisText(ImDrawList* dl, ImVec2 p, float max_x, ImU32 col, const std::string& text)
+{
+    const std::string s = EllipsizeMiddleToWidth(ImGui::GetFont(), text, max_x - p.x);
+    if (s.empty()) return !text.empty();
+    dl->AddText(p, col, s.c_str());
+    return s.size() != text.size();
 }
 
 void VerticalText(ImDrawList* dl, ImFont* font, float cx, float top, ImU32 col, const std::string& text, bool down,
