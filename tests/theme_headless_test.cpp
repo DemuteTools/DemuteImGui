@@ -325,6 +325,124 @@ void DrawWidgets(int frame)
     }
 }
 
+// ui_list.h: the standard gestures of a list. Two lists (A primary, B) in a focused window, frames driven by
+// real mouse and key events: Ctrl+A goes to the list with the keyboard only, never while a text field types.
+struct TwoLists {
+    ui::ListKeysState a, b;
+    bool typing = false;
+};
+
+TwoLists ListFrame(ImGuiIO& io, bool field_active, bool b_multi = true)
+{
+    TwoLists r;
+    io.DeltaTime = 1.0f / 60.0f;
+    ImGui::NewFrame();
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(600, 400));
+    ImGui::Begin("##lists", nullptr, ImGuiWindowFlags_NoDecoration);
+    ImGui::SetCursorScreenPos(ImVec2(10, 10));
+    ImGui::Dummy(ImVec2(200, 100));
+    ui::ListKeysOpts pa;
+    pa.primary = true;
+    r.a = ui::ListKeys("A", ImVec2(10, 10), ImVec2(210, 110), pa);
+    ImGui::SetCursorScreenPos(ImVec2(300, 10));
+    ImGui::Dummy(ImVec2(200, 100));
+    ui::ListKeysOpts pb;
+    pb.multi = b_multi;
+    r.b = ui::ListKeys("B", ImVec2(300, 10), ImVec2(500, 110), pb);
+    ImGui::SetCursorScreenPos(ImVec2(10, 200));
+    static char buf[32] = "";
+    if (field_active) ImGui::SetKeyboardFocusHere();
+    ImGui::InputText("##field", buf, sizeof buf);
+    r.typing = ImGui::IsItemActive();
+    ImGui::End();
+    ImGui::Render();
+    ServiceTextures(ImGui::GetDrawData());
+    return r;
+}
+
+void Click(ImGuiIO& io, ImVec2 at)
+{
+    io.AddMousePosEvent(at.x, at.y);
+    io.AddMouseButtonEvent(0, true);
+}
+
+void Release(ImGuiIO& io) { io.AddMouseButtonEvent(0, false); }
+
+void CtrlA(ImGuiIO& io, bool down)
+{
+    io.AddKeyEvent(ImGuiMod_Ctrl, down);
+    io.AddKeyEvent(ImGuiKey_LeftCtrl, down);
+    io.AddKeyEvent(ImGuiKey_A, down);
+}
+
+void ListGestures(ImGuiIO& io)
+{
+    // Pure: ListPick and ListSelectAll.
+    {
+        const std::vector<int> order = {1, 2, 3, 4, 5};
+        std::vector<int> sel;
+        int anchor = 0;
+        CHECK(ui::ListPick(sel, anchor, 2, order, ui::ListClick::Alone) && sel == std::vector<int>({2}) && anchor == 2);
+        CHECK(ui::ListPick(sel, anchor, 4, order, ui::ListClick::Range) && sel == std::vector<int>({2, 3, 4}) && anchor == 2);
+        CHECK(ui::ListPick(sel, anchor, 5, order, ui::ListClick::Toggle) && sel == std::vector<int>({2, 3, 4, 5}) && anchor == 5);
+        CHECK(ui::ListPick(sel, anchor, 3, order, ui::ListClick::Toggle) && sel == std::vector<int>({2, 4, 5}));
+        CHECK(ui::ListPick(sel, anchor, 1, order, ui::ListClick::Range) && sel == std::vector<int>({1, 2, 3}));
+        int none = 9;  // an anchor not shown: a Range is a plain click
+        CHECK(ui::ListPick(sel, none, 4, order, ui::ListClick::Range) && sel == std::vector<int>({4}) && none == 4);
+        CHECK(ui::ListSelectAll(sel, order) && sel == order && !ui::ListSelectAll(sel, order));
+    }
+    ListFrame(io, false);
+    ListFrame(io, false);
+    // No click yet: the primary list A has the keyboard; Ctrl+A is its.
+    CtrlA(io, true);
+    TwoLists f = ListFrame(io, false);
+    CHECK(f.a.has_keyboard && f.a.select_all && !f.b.has_keyboard && !f.b.select_all);
+    CtrlA(io, false);
+    ListFrame(io, false);
+    // A click in B: B has it.
+    Click(io, ImVec2(350, 50));
+    f = ListFrame(io, false);
+    CHECK(f.b.clicked && f.b.has_keyboard);
+    Release(io);
+    f = ListFrame(io, false);
+    CHECK(f.b.has_keyboard && !f.a.has_keyboard);
+    CHECK(ui::ListWantsSelectAll(nullptr));
+    CtrlA(io, true);
+    f = ListFrame(io, false);
+    CHECK(f.b.select_all && !f.a.select_all);
+    CtrlA(io, false);
+    ListFrame(io, false);
+    // A text field typing: Ctrl+A is the field's.
+    ListFrame(io, true);
+    f = ListFrame(io, false);
+    CtrlA(io, true);
+    f = ListFrame(io, false);
+    CHECK(f.typing && !f.a.select_all && !f.b.select_all);
+    CtrlA(io, false);
+    io.AddKeyEvent(ImGuiKey_Escape, true);
+    ListFrame(io, false);
+    io.AddKeyEvent(ImGuiKey_Escape, false);
+    // A click elsewhere (outside both lists) takes B's keyboard away: back to the primary.
+    Click(io, ImVec2(550, 300));
+    ListFrame(io, false);
+    Release(io);
+    ListFrame(io, false);  // (the key event before it: ImGui trickles the click to the next frame)
+    f = ListFrame(io, false);
+    CHECK(f.a.has_keyboard && !f.b.has_keyboard);
+    // A list of one row at a time never selects all, and the host keeps Ctrl+A.
+    Click(io, ImVec2(350, 50));
+    ListFrame(io, false, false);
+    Release(io);
+    f = ListFrame(io, false, false);
+    CHECK(f.b.has_keyboard && !ui::ListWantsSelectAll(nullptr));
+    CtrlA(io, true);
+    f = ListFrame(io, false, false);
+    CHECK(!f.b.select_all && !f.a.select_all);
+    CtrlA(io, false);
+    ListFrame(io, false, false);
+}
+
 }  // namespace
 
 int main()
@@ -398,6 +516,8 @@ int main()
     CHECK(ImGui::GetDrawData()->TotalVtxCount > 1000);
 
     ui::SetUiScale(1.0f);
+    ListGestures(io);
+    ui::ListKeysForget(ctx);
     ImGui::DestroyContext(ctx);
     if (g_fail == 0) std::printf("theme_headless_test: OK (%zu vertices in the last styled frame)\n", last_vtx);
     return g_fail == 0 ? 0 : 1;

@@ -43,6 +43,7 @@ add_library(theme STATIC
     src/ui_flow.cpp
     src/ui_flow_math.cpp
     src/ui_fold_all.cpp
+    src/ui_list.cpp
     src/library_icons.cpp)
 target_include_directories(theme PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(theme PUBLIC demute_imgui_core)

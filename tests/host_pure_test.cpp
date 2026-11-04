@@ -164,6 +164,13 @@ void TestKeyRoute()
     CHECK(FloatWindowKeyRoute(kMsgSysKeyDown, kVkF4, false, true, false) == kFloatRouteWindowSys);
     CHECK(FloatWindowKeyRoute(kMsgSysKeyDown, kVkF4, false, true, true) == kFloatRouteWindowSys);  // even typing
     CHECK(FloatWindowKeyRoute(kMsgSysKeyUp, kVkF4, false, true, false) == kFloatRouteReaper);
+    // Ctrl+A (ui_list.h): the window's only while one of its lists has the keyboard; REAPER's otherwise.
+    CHECK(FloatWindowKeyRoute(kMsgKeyDown, kVkA, true, false, false) == kFloatRouteReaper);
+    CHECK(FloatWindowKeyRoute(kMsgKeyDown, kVkA, true, false, false, true) == kFloatRouteWindow);
+    CHECK(FloatWindowKeyRoute(kMsgKeyUp, kVkA, true, false, false, true) == kFloatRouteWindow);
+    CHECK(FloatWindowKeyRoute(kMsgKeyDown, kVkA, false, false, false, true) == kFloatRouteReaper);  // A alone
+    CHECK(FloatWindowKeyRoute(kMsgKeyDown, kVkA, true, true, false, true) == kFloatRouteReaper);    // AltGr+A
+    CHECK(FloatWindowKeyRoute(kMsgKeyDown, 'Z', true, false, false, true) == kFloatRouteReaper);    // Ctrl+Z still
     // A text field active: every key message is the window's, the SYS ones excepted.
     CHECK(FloatWindowKeyRoute(kMsgKeyDown, 0x20, false, false, true) == kFloatRouteWindow);
     CHECK(FloatWindowKeyRoute(kMsgKeyDown, 'Z', true, false, true) == kFloatRouteWindow);

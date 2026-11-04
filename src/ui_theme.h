@@ -145,6 +145,9 @@
 //  Icons       the small tool glyphs (cross, duplicate, undo, plus, lock, gear, check, fold, open arrow) are
 //              library_icons.h's ToolIcon / DrawToolGlyph (ui::IconFn)
 //  Labels      LabelRow in a window that sizes itself (a popup) keeps the label beside its field (ui_flow.h)
+//  Lists       the standard gestures of every list of rows, by default (ui_list.h, included here): ListPick
+//              (click alone / Ctrl+click toggles / Shift+click the range), ListKeys (Ctrl+A selects every row when
+//              the list has the keyboard and allows several rows, never a text field's Ctrl+A)
 // =====================================================================================
 
 #pragma once
@@ -1010,4 +1013,6 @@ bool VerticalTabs(const char* id, const char* const* labels, int count, int* sel
 
 }  // namespace ui
 }  // namespace rav
+
+#include "ui_list.h"
 

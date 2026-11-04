@@ -34,7 +34,7 @@ static_assert(rav::host::kMsgKeyDown == WM_KEYDOWN && rav::host::kMsgKeyUp == WM
 static_assert(rav::host::kVkBack == VK_BACK && rav::host::kVkTab == VK_TAB && rav::host::kVkReturn == VK_RETURN &&
                   rav::host::kVkEscape == VK_ESCAPE && rav::host::kVkLeft == VK_LEFT && rav::host::kVkUp == VK_UP &&
                   rav::host::kVkRight == VK_RIGHT && rav::host::kVkDown == VK_DOWN && rav::host::kVkDelete == VK_DELETE &&
-                  rav::host::kVkF4 == VK_F4,
+                  rav::host::kVkF4 == VK_F4 && rav::host::kVkA == 'A',
               "float_key_route.h: virtual-key codes");
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -207,6 +207,7 @@ bool FloatUiWindow::Create()
         if (!ok) ImGui_ImplWin32_Shutdown();
     }
     if (!ok) {
+        ui::ListKeysForget(ctx_);
         ImGui::DestroyContext(ctx_);
         ctx_ = nullptr;
         ImGui::SetCurrentContext(prev);
@@ -339,16 +340,19 @@ int FloatUiWindow::RouteKey(const MSG* msg, bool* is_float)
 {
     if (is_float) *is_float = false;
     if (!msg) return host::kFloatRouteReaper;
-    bool owned = false, wants_text = false;
+    bool owned = false, wants_text = false, list_keys = false;
     for (const FloatUiWindow* w : g_floats) {
         if (!w) continue;
-        owned = owned || w->Owns(msg->hwnd);
+        const bool mine = w->Owns(msg->hwnd);
+        owned = owned || mine;
         wants_text = wants_text || w->WantsText();
+        // Ctrl+A: the window's while one of its lists has the keyboard (ui_list.h), REAPER's otherwise.
+        if (mine && w->ctx_) list_keys = list_keys || ui::ListWantsSelectAll(w->ctx_);
     }
     if (!owned) return host::kFloatRouteReaper;
     if (is_float) *is_float = true;
     const bool ctrl = GetKeyState(VK_CONTROL) < 0, alt = GetKeyState(VK_MENU) < 0;
-    return host::FloatWindowKeyRoute(msg->message, static_cast<unsigned>(msg->wParam), ctrl, alt, wants_text);
+    return host::FloatWindowKeyRoute(msg->message, static_cast<unsigned>(msg->wParam), ctrl, alt, wants_text, list_keys);
 }
 
 void FloatUiWindow::Hide()
@@ -371,6 +375,7 @@ void FloatUiWindow::Destroy()
     }
     if (ctx_) {
         ImGuiContext* prev = ImGui::GetCurrentContext();
+        ui::ListKeysForget(ctx_);     // its lists' keyboard (ui_list.h)
         ImGui::DestroyContext(ctx_);  // the shared atlas is not its own: kept
         ImGui::SetCurrentContext(prev == ctx_ ? nullptr : prev);
         ctx_ = nullptr;
