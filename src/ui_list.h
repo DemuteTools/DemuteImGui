@@ -10,7 +10,8 @@
 //     held, the list's window is focused and the list is not drawn disabled.
 // The keyboard of lists, one per ImGui context: the list clicked last (left or right button, outside popups);
 // a click elsewhere takes it away. A `primary` list (the main list of what is shown) has it while no other
-// list was clicked (Ctrl+A works without a click in it first); a list not drawn for a frame loses it.
+// list was clicked (Ctrl+A works without a click in it first); a list not drawn for a frame loses it until it is
+// drawn again.
 // A host routes Ctrl+A to its window rather than to the host application only while ListWantsSelectAll.
 //
 // The templates are pure (no ImGui); ListKeys, ListWantsSelectAll and ListKeysForget need ImGui.
@@ -77,7 +78,7 @@ struct ListKeysState {
 };
 
 // Once per frame the list is shown, after its rows, with the rectangle it covers (screen coordinates: the visible
-// part of a scrolling list). `id` is pushed on the ID stack (two lists of a window need two ids).
+// part of a scrolling list). `id` is hashed with the current ID stack (two lists of a window need two ids).
 ListKeysState ListKeys(const char* id, const ImVec2& min, const ImVec2& max, const ListKeysOpts& opts = ListKeysOpts());
 
 // A list of that context (null: the current one) has the keyboard and allows several rows now: a host hands

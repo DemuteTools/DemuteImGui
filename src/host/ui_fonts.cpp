@@ -18,6 +18,7 @@
 #include <backends/imgui_impl_win32.h>
 
 #include "host_services.h"
+#include "ui_list.h"
 #include "ui_glyph_ranges.h"
 #include "ui_theme.h"
 
@@ -205,6 +206,7 @@ void DestroyWindowImGui(ImGuiContext* ctx)
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ui::SetFonts(ui::FontSet{});  // no role font may point into the atlas that goes
+    ui::ListKeysForget(ctx);      // its lists' keyboard (ui_list.h): a new context at the same address starts clean
     ImGui::DestroyContext(ctx);
     ImGui::SetCurrentContext(prev == ctx ? nullptr : prev);
 }
