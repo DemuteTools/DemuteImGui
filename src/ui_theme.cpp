@@ -531,15 +531,42 @@ bool SolidButton(const char* label, const ImVec2& size)
 bool ToggleButton(const char* label, bool on, const ImVec2& size)
 {
     if (!on || ItemDisabled()) return SolidButton(label, size);  // disabled: the disabled skin, no accent
-    ImGui::PushStyleColor(ImGuiCol_Button, Col(kAccentSoft));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Col(kAccentHoverSoft));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, Col(kAccentSoft));
-    ImGui::PushStyleColor(ImGuiCol_Border, Col(kAccentLine));
-    ImGui::PushStyleColor(ImGuiCol_Text, Col(kAccentText));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+    // RAW 18.6: the label in FontSemibold, the padding narrowed by what the bold adds, so the button keeps
+    // the off button's width (ButtonWidth in the regular font): lit or not, nothing after it moves.
+    // A caller in another font size (small, title...) keeps its font: the bold role is 12 px only.
+    const float regular = TextWidth(label);
+    ImFont* const semibold = FontSemibold();
+    const bool    bolden = semibold && std::fabs(semibold->LegacySize - ImGui::GetFontSize()) < 0.5f;
+    PushFontPx(bolden ? semibold : ImGui::GetFont());
+    const float bold = TextWidth(label);
+    const ImVec2 pad = ImGui::GetStyle().FramePadding;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(std::max(0.0f, pad.x - std::max(0.0f, bold - regular) * 0.5f), pad.y));
+    ImGui::PushStyleColor(ImGuiCol_Button, Col(kAccentOn));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Col(kAccentOnHover));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, Col(kAccentOn));
+    ImGui::PushStyleColor(ImGuiCol_Border, Col(kAccent));
+    ImGui::PushStyleColor(ImGuiCol_Text, Col(kWhite));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
     const bool pressed = FittedButton(label, size);
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(5);
+    ImGui::PopFont();
+    // The faint white line along its top (.tgl.on inset 0 1px #ffffff1f) and the slow glow around it
+    // (@keyframes tglglow: 0 -> .35 -> 0 over 3.2 s, 2 px out). Drawn every frame like the rest: no frame of its own.
+    const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
+    ImDrawList*  dl = ImGui::GetWindowDrawList();
+    const float  r = kRadiusMd;
+    if (b.x - a.x > 2.0f * r)
+        dl->AddLine(ImVec2(a.x + r, a.y + 2.5f), ImVec2(b.x - r, a.y + 2.5f), IM_COL32(0xFF, 0xFF, 0xFF, 0x1F));
+    const float phase = 0.5f - 0.5f * std::cos(static_cast<float>(ImGui::GetTime()) * (2.0f * 3.14159265f / 3.2f));
+    const auto  glow = [&](float out, float alpha) {
+        const int a8 = static_cast<int>(alpha * phase * 255.0f + 0.5f);
+        if (a8 <= 0) return;
+        dl->AddRect(ImVec2(a.x - out, a.y - out), ImVec2(b.x + out, b.y + out),
+                    (kAccent & ~IM_COL32_A_MASK) | (static_cast<ImU32>(a8) << IM_COL32_A_SHIFT), r + out, 0, 1.0f);
+    };
+    glow(1.5f, 0.35f);
+    glow(2.5f, 0.15f);
     return pressed;
 }
 

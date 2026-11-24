@@ -175,7 +175,11 @@ constexpr ImU32 kAccent       = IM_COL32(0x35, 0x68, 0xDE, 0xFF);
 constexpr ImU32 kAccentSoft   = IM_COL32(0x35, 0x68, 0xDE, 0x29);  // --accent-soft (.16)
 constexpr ImU32 kAccentLine   = IM_COL32(0x35, 0x68, 0xDE, 0x8C);  // --accent-line (.55)
 constexpr ImU32 kPrimaryHover = IM_COL32(0x2A, 0x5B, 0xCF, 0xFF);  // darker than kAccent: white text stays >= 4.5:1 (6.01)
-constexpr ImU32 kAccentHoverSoft = IM_COL32(0x35, 0x68, 0xDE, 0x3D);  // an on toggle under the mouse (accent .24)
+constexpr ImU32 kAccentHoverSoft = IM_COL32(0x35, 0x68, 0xDE, 0x3D);  // accent .24: a lit row or chip under the mouse
+// RAW 18.6 (mock-up step41 .tgl.on): an on ToggleButton's fill, clearly lighter than accent-soft (accent .40),
+// and under the mouse (.50); its text is kWhite (on-accent) in FontSemibold, its edge kAccent 2 px.
+constexpr ImU32 kAccentOn        = IM_COL32(0x35, 0x68, 0xDE, 0x66);
+constexpr ImU32 kAccentOnHover   = IM_COL32(0x35, 0x68, 0xDE, 0x80);
 constexpr ImU32 kOk           = IM_COL32(0x5F, 0xDD, 0x9E, 0xFF);
 constexpr ImU32 kWarn         = IM_COL32(0xFF, 0xD1, 0x66, 0xFF);
 // Story 10-3b -- the amber in-place confirm (overwrite / delete) and the Legacy band: its
@@ -385,9 +389,13 @@ bool Segmented(const char* id, const char* const* labels, int count, int* select
 // ImVec2(0, LargeH()) for the full-size .btn (the Play button).
 bool PrimaryButton(const char* label, const ImVec2& size = ImVec2(0.0f, 0.0f));
 bool SolidButton(const char* label, const ImVec2& size = ImVec2(0.0f, 0.0f));
-// A solid button that shows an on state (.btn.on / .playbig.on): accent-soft fill, accent-line
-// edge, text kAccentText. Play <-> Stop, the speaker toggle. Disabled, on or off, it takes the disabled
-// button's skin (raised, stroke edge, faint text: no accent).
+// A solid button that shows an on state: every yes / no setting of a screen, and a choice among options
+// (Play <-> Stop, the speaker toggle). Off: the solid button. On (RAW 18.6, mock-up step41 .tgl.on), very
+// marked: fill kAccentOn (kAccentOnHover under the mouse), a 2 px kAccent edge, a faint white line along
+// its top, the label kWhite in FontSemibold, and a slow, faint accent glow around it (3.2 s, at most .35,
+// 2 px out; no frame of its own: the hosts draw every frame anyway). Its width is the off button's
+// (ButtonWidth(label), the regular font): lit or not, it never moves what follows. Disabled, on or off, it
+// takes the disabled button's skin (raised, stroke edge, faint text: no accent).
 bool ToggleButton(const char* label, bool on, const ImVec2& size = ImVec2(0.0f, 0.0f));
 // A square ghost button holding one glyph (.btn.sm.ico, .colbtn: "«", "»", "⋯", "×") or an icon:
 // muted, kText and kHover under the mouse. `side` 0 = ControlH(). `tip`: its tooltip.

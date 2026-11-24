@@ -47,6 +47,17 @@ float Contrast(ImU32 a, ImU32 b)
     return (hi + 0.05f) / (lo + 0.05f);
 }
 
+// `top` (with its alpha) laid over the opaque `under`.
+ImU32 Over(ImU32 top, ImU32 under)
+{
+    const float a = ((top >> IM_COL32_A_SHIFT) & 0xFF) / 255.0f;
+    const auto  mix = [&](int shift) {
+        const float t = (top >> shift) & 0xFF, u = (under >> shift) & 0xFF;
+        return static_cast<ImU32>(t * a + u * (1.0f - a) + 0.5f) << shift;
+    };
+    return mix(IM_COL32_R_SHIFT) | mix(IM_COL32_G_SHIFT) | mix(IM_COL32_B_SHIFT) | IM_COL32_A_MASK;
+}
+
 struct Shape {
     std::vector<ImVec2> pts;
     std::vector<ImDrawIdx> idx;
@@ -70,6 +81,16 @@ int main()
     CHECK((ui::kAccentSoft & 0x00FFFFFF) == (ui::kAccent & 0x00FFFFFF) && (ui::kAccentSoft >> 24) == 0x29);
     CHECK((ui::kAccentLine & 0x00FFFFFF) == (ui::kAccent & 0x00FFFFFF) && (ui::kAccentLine >> 24) == 0x8C);
     CHECK((ui::kAccentHoverSoft & 0x00FFFFFF) == (ui::kAccent & 0x00FFFFFF) && (ui::kAccentHoverSoft >> 24) == 0x3D);
+    // RAW 18.6: an on ToggleButton (kAccentOn / kAccentOnHover over the raised surface), its white label AA.
+    CHECK((ui::kAccentOn & 0x00FFFFFF) == (ui::kAccent & 0x00FFFFFF) && (ui::kAccentOn >> 24) == 0x66);
+    CHECK((ui::kAccentOnHover & 0x00FFFFFF) == (ui::kAccent & 0x00FFFFFF) && (ui::kAccentOnHover >> 24) == 0x80);
+    {
+        const float on = Contrast(ui::kWhite, Over(ui::kAccentOn, ui::kRaised));
+        const float on_hover = Contrast(ui::kWhite, Over(ui::kAccentOnHover, ui::kRaised));
+        std::printf("white on an on toggle %.2f, under the mouse %.2f\n", on, on_hover);
+        CHECK(on >= 4.5f);
+        CHECK(on_hover >= 4.5f);
+    }
     CHECK((ui::kAccentFaint & 0x00FFFFFF) == (ui::kAccent & 0x00FFFFFF) && (ui::kAccentFaint >> 24) == 0x1A);
 
     // 2. The 8 icons on a stand-alone draw list (no context, no AA fringe: strict bounds).

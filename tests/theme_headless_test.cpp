@@ -133,6 +133,15 @@ void DrawWidgets(int frame)
     ImGui::SameLine();
     ui::ToggleButton("Toggle", on);
     ImGui::SameLine();
+    {  // RAW 18.6: lit, the button keeps the off button's width (its bold label in the same room).
+        ui::ToggleButton("Same width##off", false);
+        const float off_w = ImGui::GetItemRectSize().x;
+        ImGui::SameLine();
+        ui::ToggleButton("Same width##on", true);
+        const float on_w = ImGui::GetItemRectSize().x;
+        CHECK(on_w > off_w - 0.5f && on_w < off_w + 0.5f);
+        ImGui::SameLine();
+    }
     ui::ChipButton("Chip", ImVec2(0, 0), true);
     ImGui::SameLine();
     ui::SplitChip("Split chip", ToolIcon(kToolPlus), true, frame % 2 == 0, true, frame % 2 == 1);
