@@ -47,6 +47,7 @@
 //                11 px after the title ("· 2 children"), `right_w` room for header widgets
 //                (BeginSectionHeaderRight / EndSectionHeaderRight), nested = kBg card.
 //    Buttons     SolidButton, PrimaryButton (ghost = ImGui::Button), ToggleButton (.btn.on),
+//                YesNoButton (a yes / no setting: ToggleButton + slow glow),
 //                IconOnlyButton (22 px ghost glyph / icon, .btn.sm.ico / .colbtn),
 //                LinkButton (.linkbtn), AddButton (dashed .addbtn), HelpMark ("?" circle),
 //                MenuButton / IconButton (ui_flow.h)
@@ -389,14 +390,17 @@ bool Segmented(const char* id, const char* const* labels, int count, int* select
 // ImVec2(0, LargeH()) for the full-size .btn (the Play button).
 bool PrimaryButton(const char* label, const ImVec2& size = ImVec2(0.0f, 0.0f));
 bool SolidButton(const char* label, const ImVec2& size = ImVec2(0.0f, 0.0f));
-// A solid button that shows an on state: every yes / no setting of a screen, and a choice among options
-// (Play <-> Stop, the speaker toggle). Off: the solid button. On (RAW 18.6, mock-up step41 .tgl.on), very
-// marked: fill kAccentOn (kAccentOnHover under the mouse), a 2 px kAccent edge, a faint white line along
-// its top, the label kWhite in FontSemibold, and a slow, faint accent glow around it (3.2 s, at most .35,
-// 2 px out; no frame of its own: the hosts draw every frame anyway). Its width is the off button's
+// A solid button that shows an on state: the chosen option among several (Play <-> Stop, the speaker toggle,
+// a naming rule, a separator...). Off: the solid button. On (RAW 18.6, mock-up step41 .tgl.on), very marked:
+// fill kAccentOn (kAccentOnHover under the mouse), a 2 px kAccent edge, a faint white line along its top, the
+// label kWhite in FontSemibold. No glow: that is YesNoButton's. Its width is the off button's
 // (ButtonWidth(label), the regular font): lit or not, it never moves what follows. Disabled, on or off, it
 // takes the disabled button's skin (raised, stroke edge, faint text: no accent).
 bool ToggleButton(const char* label, bool on, const ImVec2& size = ImVec2(0.0f, 0.0f));
+// A yes / no setting of a screen (Suggest, Automatic, Case sensitive...): ToggleButton's look, and on, a slow,
+// faint accent glow around it (mock-up step41 @keyframes tglglow: 3.2 s, at most .35, 2 px out; no frame of
+// its own: the hosts draw every frame anyway). Only a yes / no setting glows, never a choice among options.
+bool YesNoButton(const char* label, bool on, const ImVec2& size = ImVec2(0.0f, 0.0f));
 // A square ghost button holding one glyph (.btn.sm.ico, .colbtn: "«", "»", "⋯", "×") or an icon:
 // muted, kText and kHover under the mouse. `side` 0 = ControlH(). `tip`: its tooltip.
 bool IconOnlyButton(const char* id, const char* glyph, const char* tip = nullptr, float side = 0.0f, bool on = false);

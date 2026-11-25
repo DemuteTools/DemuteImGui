@@ -10,6 +10,9 @@
 // requests itself with CPU memory.
 
 #include <imgui.h>
+#include <imgui_internal.h>
+
+#include <cmath>
 
 #include <cstdio>
 #include <cstring>
@@ -140,6 +143,31 @@ void DrawWidgets(int frame)
         ui::ToggleButton("Same width##on", true);
         const float on_w = ImGui::GetItemRectSize().x;
         CHECK(on_w > off_w - 0.5f && on_w < off_w + 0.5f);
+        ImGui::SameLine();
+    }
+    {  // Only a yes / no setting glows: lit, YesNoButton draws more than ToggleButton (its glow) while the
+       // glow is up, and the same width; ToggleButton (a choice among options) never glows.
+        ImDrawList* bdl = ImGui::GetWindowDrawList();
+        const double saved_time = GImGui->Time;
+        GImGui->Time = 1.6;  // the glow at its peak (half its 3.2 s period)
+        ImGui::NewLine();     // a row of its own: a button never shrinks to the room left
+        int vtx = bdl->VtxBuffer.Size;
+        ui::ToggleButton("Choice##on", true);
+        const int choice_vtx = bdl->VtxBuffer.Size - vtx;
+        const float choice_w = ImGui::GetItemRectSize().x;
+        ImGui::SameLine();
+        vtx = bdl->VtxBuffer.Size;
+        ui::YesNoButton("Choice##yesno", true);
+        const int yesno_vtx = bdl->VtxBuffer.Size - vtx;
+        const float yesno_w = ImGui::GetItemRectSize().x;
+        CHECK(yesno_w > choice_w - 0.5f && yesno_w < choice_w + 0.5f);
+        CHECK(yesno_vtx > choice_vtx);
+        ImGui::SameLine();
+        vtx = bdl->VtxBuffer.Size;
+        ui::YesNoButton("Choice##yesnooff", false);  // off: the solid button, no glow
+        const int off_vtx = bdl->VtxBuffer.Size - vtx;
+        CHECK(off_vtx <= choice_vtx);
+        GImGui->Time = saved_time;
         ImGui::SameLine();
     }
     ui::ChipButton("Chip", ImVec2(0, 0), true);

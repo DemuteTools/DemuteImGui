@@ -528,7 +528,10 @@ bool SolidButton(const char* label, const ImVec2& size)
     return pressed;
 }
 
-bool ToggleButton(const char* label, bool on, const ImVec2& size)
+namespace {
+
+// ToggleButton's body; `glow`: YesNoButton's slow glow around the lit button.
+bool ToggleButtonImpl(const char* label, bool on, const ImVec2& size, bool glow_on)
 {
     if (!on || ItemDisabled()) return SolidButton(label, size);  // disabled: the disabled skin, no accent
     // RAW 18.6: the label in FontSemibold, the padding narrowed by what the bold adds, so the button keeps
@@ -551,13 +554,15 @@ bool ToggleButton(const char* label, bool on, const ImVec2& size)
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(5);
     ImGui::PopFont();
-    // The faint white line along its top (.tgl.on inset 0 1px #ffffff1f) and the slow glow around it
-    // (@keyframes tglglow: 0 -> .35 -> 0 over 3.2 s, 2 px out). Drawn every frame like the rest: no frame of its own.
+    // The faint white line along its top (.tgl.on inset 0 1px #ffffff1f) and, for a yes / no setting only, the
+    // slow glow around it (@keyframes tglglow: 0 -> .35 -> 0 over 3.2 s, 2 px out). Drawn every frame like the
+    // rest: no frame of its own.
     const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
     ImDrawList*  dl = ImGui::GetWindowDrawList();
     const float  r = kRadiusMd;
     if (b.x - a.x > 2.0f * r)
         dl->AddLine(ImVec2(a.x + r, a.y + 2.5f), ImVec2(b.x - r, a.y + 2.5f), IM_COL32(0xFF, 0xFF, 0xFF, 0x1F));
+    if (!glow_on) return pressed;
     const float phase = 0.5f - 0.5f * std::cos(static_cast<float>(ImGui::GetTime()) * (2.0f * 3.14159265f / 3.2f));
     const auto  glow = [&](float out, float alpha) {
         const int a8 = static_cast<int>(alpha * phase * 255.0f + 0.5f);
@@ -569,6 +574,12 @@ bool ToggleButton(const char* label, bool on, const ImVec2& size)
     glow(2.5f, 0.15f);
     return pressed;
 }
+
+}  // namespace
+
+bool ToggleButton(const char* label, bool on, const ImVec2& size) { return ToggleButtonImpl(label, on, size, false); }
+
+bool YesNoButton(const char* label, bool on, const ImVec2& size) { return ToggleButtonImpl(label, on, size, true); }
 
 bool ConfirmButton(const char* label, const ImVec2& size)
 {
